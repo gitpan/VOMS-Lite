@@ -1,0 +1,94 @@
+Revision history for Perl extension VOMS::Lite.
+
+0.01
+	- original version; created by h2xs 1.23 with options
+		-AXc -b 5.4.0 -n VOMS::Lite
+
+0.02  Wed Jan 24 17:55:20 2007
+	- Enable access to VOs with FQDNs as names (ie '.' seperated DNS)
+		Changes to VOMS/Lite.pm's GetDBAttribs to obtain 
+		VO -> DB mapping from voms.config.  Changes also to 
+		VOMS/Lite/Attribs/DBHelper.pm to print errors from eval calls
+		to STDERR.
+
+0.03  Mon Feb 19 18:48:00 2007
+	- bugfix: hex serial returned by VOMS DB now converted to decimal
+        - bugfix: Authority Key ID fixed in X509.pm
+        - Added REQ.pm to parse and create certificate requests
+        - Rearranged the Libtaries.  PROXY X509 REQ AC now have
+          ::Create and ::Examine to reduce the size of CertKeyHelper.
+          AC::Examine not yet implemented.
+
+0.04  Wed May 23 17:35:15 2007
+        - created lib/VOMS/Lite/MyProxy.pm
+        - bin/cert-req.pl:
+              REQ::REQ is now REQ::Create
+              Format of usage documentation
+              Fixed $CACert is actually $Cert
+        - bin/verifycert.pl
+              Just get buildchain from VOMS::Lite::CertKeyHelper
+              @Refs is now a hash %Chain (change of buildchain)
+        - bin/voms-ac-issue.pl
+              @Chain is now %Chain (change of buildchain)
+        - lib/VOMS/Lite/AC.pm
+              removed VOMS::Lite::PEMHelper qw(encodeAC) -- not used, don't load it!
+        - lib/VOMS/Lite/CertKeyHelper.pm:
+              buildchain now returns a hash not an array
+        - lib/VOMS/Lite/PEMHelper.pm:
+              removed extronious openssl compatability
+              decodeCert is more efficient
+              encodeAC uses new &encodeCert
+              writeCertKey now uses &encodeCert
+              readAC now uses &readCert
+              readCert generalised now takes two arguments $filepath and $type
+              encodeCert generalised now takes N+1 arguments @ders $type
+        - lib/VOMS/Lite/PROXY.pm:
+              bugfix -Subject name (Limited is a type of legacy proxy)
+        - lib/VOMS/Lite/REQ.pm:
+              Added subjectAltName extension to REQ::Create options
+        - lib/VOMS/Lite/X509.pm:
+              bugfix - SKID Public Key Digest
+        - lib/VOMS/Lite.pm
+              buildchain is now a hash.
+        - example/ProxyChain.pl
+              Just get buildchain from VOMS::Lite::CertKeyHelper
+              @Chain is now %Chain (change of buildchain)
+
+0.05  Tue Jun 24 18:20:00 2008
+        - Updated MyProxy.pm:
+              implemented the Get function
+              changed return values allowing to bring them into line with
+                other VOMS::Lite functions
+              Updated Documentation
+        - Created myproxy-init.pl
+        - Created myproxy-get.pl
+       
+0.06  Wed Oct 1 15:50:00 2008
+        - Added Optional SSL certificate authentication to MyProxy.pm's Get routine
+        - fixed MyProxy.pm @warning typos
+
+0.07  Thu Jun 20 10:45:00 2009
+        - Various fixes in POD files
+        - Added VOMS.pm - a library to talk to gLite VOMS server 
+        - voms-proxy-init.pl now can get VOMS AC from gLite VOMS server
+        - MyProxy.pm - various fixes:
+            Opened allowed username and passwords - spec doesn't care what 
+              chars a username is made up of
+            Fixed Cert/Key check
+            Put in bail out for MyProxy server not responding correctly
+            Added option to expolit verbose Proxy creation
+            Cert patterns now using //s modifier to handle all chars as 
+              DER encoding may contain \n etc.
+            Added exception handelling when MyProxy response is not found
+        - REQ.pm
+            Added quiet mode
+        - AC.pm
+            Returned AC is now only wrapped in one ASN1Sequence c.f. gLite 
+        - PROXY.pm
+            Ajusted to deal with AC as produced by modified AC.pm
+        - Corrected Integer parser in PROXYINFO.pl example
+
+0.08  Wed Nov 18 20:09:00 2009 
+        - Fixed "multiline" search replace (binary data presenting \n) 
+          in VOMS communications VOMS.pm adding the trailing modifier 
+          to s/// => s///s
