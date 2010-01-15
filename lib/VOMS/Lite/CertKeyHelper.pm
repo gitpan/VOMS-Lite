@@ -11,18 +11,10 @@ use Digest::MD5 qw(md5);
 require Exporter;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 @ISA = qw(Exporter);
-
-# Items to export into callers namespace by default. Note: do not export
-# names by default without a very good reason. Use EXPORT_OK instead.
-# Do not simply export all your public functions/methods/constants.
-
-# This allows declaration	use VOMS::Lite ':all';
-# If you do not need this, moving things directly into @EXPORT or @EXPORT_OK
-# will save memory.
 %EXPORT_TAGS = ( );
 @EXPORT_OK = qw(buildchain digestSign OIDtoDNattrib DNattribToOID);
 @EXPORT = ( );
-$VERSION = '0.01';
+$VERSION = '0.09';
 ##################################################
 
 # Define some common OIDs used in Distunguished names NB we're using UID and Email not UserID and emailAddress
@@ -456,6 +448,7 @@ This module was originally designed for the SHEBANGS project at
 The University of Manchester.
 
 http://www.mc.manchester.ac.uk/projects/shebangs/
+now http://www.rcs.manchester.ac.uk/research/shebangs/
 
 Mailing list, shebangs@listserv.manchester.ac.uk
 

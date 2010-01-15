@@ -93,6 +93,7 @@ This module was originally designed for the SHEBANGS project at
 The University of Manchester.
 
 http://www.mc.manchester.ac.uk/projects/shebangs/
+now http://www.rcs.manchester.ac.uk/research/shebangs/
 
 Mailing list, shebangs@listserv.manchester.ac.uk
 

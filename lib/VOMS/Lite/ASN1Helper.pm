@@ -11,7 +11,7 @@ use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 %EXPORT_TAGS = ( );
 @EXPORT_OK = qw( Hex DecToHex ASN1BitStr ASN1Wrap ASN1UnwrapHex ASNLenStr ASN1Index ASN1Unwrap ASN1OIDtoOID OIDtoASN1OID);
 @EXPORT = (  );
-$VERSION = '0.08';
+$VERSION = '0.09';
 
 ##################################################
 
@@ -265,6 +265,7 @@ http://www.itu.int/ITU-T/studygroups/com17/languages/
 
 This module was originally designed for the SHEBANGS project at The University of Manchester.
 http://www.mc.manchester.ac.uk/projects/shebangs/
+now http://www.rcs.manchester.ac.uk/research/shebangs/
 
 Mailing list, shebangs@listserv.manchester.ac.uk
 Mailing list, voms-lite@listserv.manchester.ac.uk

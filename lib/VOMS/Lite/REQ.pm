@@ -2,27 +2,26 @@ package VOMS::Lite::REQ;
 
 use 5.004;
 use strict;
-use VOMS::Lite::PEMHelper qw(readCert readAC readPrivateKey writeCertKey);
 use VOMS::Lite::CertKeyHelper qw(OIDtoDNattrib digestSign DNattribToOID);
 use VOMS::Lite::ASN1Helper qw(ASN1OIDtoOID ASN1Index ASN1Wrap ASN1Unwrap ASN1UnwrapHex DecToHex Hex ASN1BitStr OIDtoASN1OID);
 use VOMS::Lite::X509;
 use VOMS::Lite::KEY;
 use Digest::SHA1 qw(sha1_hex);
 use Digest::MD5 qw(md5);
-use Crypt::RSA::Key;
+use VOMS::Lite::RSAKey;
 
 require Exporter;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 @ISA = qw(Exporter);
 
-$VERSION = '0.08';
+$VERSION = '0.09';
 
 sub Examine {
   my ($decoded,$dataref)=@_;
   my %Values=%$dataref;
   my @ASN1Index=ASN1Index($decoded);
 
-  return ( {Errors=>"Unable to parse certificate request"} ) if (@ASN1Index==0);
+  return ( {Errors=> [ "Unable to parse certificate request" ]} ) if (@ASN1Index==0);
 
   my ($index,$ignoreuntil)=(0,0);
   my ($REQInfo,$REQversion,$REQsubject,$REQsubjectPublicKeyInfo,$REQattributes,$REQSignatureAlgorithm,$REQSignatureValue);
@@ -204,29 +203,33 @@ sub Create {
   if ( ! defined $context{'Key'} ) { # Need to generate a key pair
 
 # Generate Key Pair
-    my $keychain = new Crypt::RSA::Key;
-    my ($public, $private) = $keychain->generate ( Size => $context{'Bits'}, Verbosity => $Verbosity)
-                           or return { Errors => [ "REQ: Error in Key Generation: ".$keychain->errstr() ] } ;
+    my $keyref = VOMS::Lite::Key::GenRSAKey( { Bits => 512, Verbose => (defined $context{'Quiet'})?undef:"y" } );
+    my $keyref = VOMS::Lite::RSAKey::Create( { Bits => 512, Verbose => (defined $context{'Quiet'})?undef:"y" } );
+    if ( ! defined $keyref ) { return { Errors => [ "REQ: Key Generation Failure" ] } ; }
+    my %key = %{ $keyref }; 
+    if ( defined $key{'Error'} ) { return { Errors => [ "REQ: Error in Key Generation ".$key{'Error'} ] } ; }
 
 ###Private Key#####################################################
+
 # Keyversion Keymodulus KeypublicExponent KeyprivateExponent
 # Keyprime1 Keyprime2 Keyexponent1 Keyexponent2 Keycoefficient
+
     my $Keyversion =         "020100";
-    $Keymodulus =            ASN1Wrap("02",DecToHex($private->n));
-    $KeypublicExponent =  ASN1Wrap("02",DecToHex($private->e));
-    $KeyprivateExponent =    ASN1Wrap("02",DecToHex($private->d));
-    my $Keyprime1 =          ASN1Wrap("02",DecToHex($private->p));
-    my $Keyprime2 =          ASN1Wrap("02",DecToHex($private->q));
-    my $Keyexponent1 =       ASN1Wrap("02",DecToHex($private->dp));
-    my $Keyexponent2 =       ASN1Wrap("02",DecToHex($private->dq));
-    my $Keycoefficient =     ASN1Wrap("02",DecToHex($private->u));
+    $Keymodulus =            ASN1Wrap("02",DecToHex($key{Modulus}));
+    $KeypublicExponent =     ASN1Wrap("02",DecToHex($key{PublicExponent}));
+    $KeyprivateExponent =    ASN1Wrap("02",DecToHex($key{PrivateExponent}));
+    my $Keyprime1 =          ASN1Wrap("02",DecToHex($key{Prime1}));
+    my $Keyprime2 =          ASN1Wrap("02",DecToHex($key{Prime2}));
+    my $Keyexponent1 =       ASN1Wrap("02",DecToHex($key{Exponent1}));
+    my $Keyexponent2 =       ASN1Wrap("02",DecToHex($key{Exponent2}));
+    my $Keycoefficient =     ASN1Wrap("02",DecToHex($key{Iqmp}));
 
     $Privatekey=ASN1Wrap("30",$Keyversion.$Keymodulus.$KeypublicExponent.$KeyprivateExponent.
                               $Keyprime1.$Keyprime2.$Keyexponent1.$Keyexponent2.$Keycoefficient);
 
-    $KI{Keymodulus}=DecToHex($private->n);
-    $KI{KeyprivateExponent}=DecToHex($private->d);
-    $KI{Keymodulus} =~ s/(..)/pack("C",hex($&))/ge;
+    $KI{Keymodulus}          = DecToHex(${ $keyref }{Modulus});
+    $KI{KeyprivateExponent}  = DecToHex(${ $keyref }{PrivateExponent});
+    $KI{Keymodulus}         =~ s/(..)/pack("C",hex($&))/ge;
     $KI{KeyprivateExponent} =~ s/(..)/pack("C",hex($&))/ge;
   }
   else {
@@ -411,6 +414,7 @@ PKCS #10: Certification Request Syntax Specification http://tools.ietf.org/html/
 
 This module was originally designed for the SHEBANGS project at The University of Manchester.
 http://www.mc.manchester.ac.uk/projects/shebangs/
+now http://www.rcs.manchester.ac.uk/research/shebangs/
 
 Mailing list, shebangs@listserv.manchester.ac.uk
 

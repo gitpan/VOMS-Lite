@@ -2,18 +2,18 @@ package VOMS::Lite::PROXY;
 
 use 5.004;
 use strict;
-use VOMS::Lite::PEMHelper qw(readCert readAC readPrivateKey writeCertKey);
+use VOMS::Lite::PEMHelper qw(readCert readAC readPrivateKey);
 use VOMS::Lite::CertKeyHelper qw(digestSign);
 use VOMS::Lite::ASN1Helper qw(ASN1Wrap ASN1Unwrap DecToHex Hex ASN1BitStr);
 use VOMS::Lite::KEY;
 use VOMS::Lite::X509;
-use Crypt::RSA::Key;
+use VOMS::Lite::RSAKey;
 
 require Exporter;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 @ISA = qw(Exporter);
 
-$VERSION = '0.08';
+$VERSION = '0.09';
 
 sub Examine {
   return VOMS::Lite::X509::Examine(@_);
@@ -90,23 +90,25 @@ sub Create {
   my ( $Keyversion, $Keymodulus, $KeypublicExponent, $KeyprivateExponent, $Keyprime1, $Keyprime2, $Keyexponent1, $Keyexponent2, $Keycoefficient, $Privatekey);
 
   if ( ! defined($KeypublicE) || ! defined($KeypublicM) ) {
-#   Generate Key Pair
-    my $keychain = new Crypt::RSA::Key;
-    my ($public, $private) = $keychain->generate ( Size => 512, Verbosity => (defined $context{'Quiet'})?0:1)
-                         or die "Error in Key Generation:".$keychain->errstr();
+
+# Generate Key Pair
+    my $keyref = VOMS::Lite::RSAKey::Create( { Bits => 512, Verbose => (defined $context{'Quiet'})?undef:"y" } );
+    if ( ! defined $keyref ) { return { Errors => [ "PROXY: Key Generation Failure" ] } ; }
+    my %key = %{ $keyref };
+    if ( defined $key{'Errors'} ) { return { Errors => [ "PROXY: Error in Key Generation ".$key{'Errors'} ] } ; }
 
 ### Proxy Private Key#####################################################
 #   Keyversion Keymodulus KeypublicExponent KeyprivateExponent
 #   Keyprime1 Keyprime2 Keyexponent1 Keyexponent2 Keycoefficient
     $Keyversion =         "020100";
-    $Keymodulus =         ASN1Wrap("02",DecToHex($private->n));
-    $KeypublicExponent =  ASN1Wrap("02",DecToHex($private->e));
-    $KeyprivateExponent = ASN1Wrap("02",DecToHex($private->d));
-    $Keyprime1 =          ASN1Wrap("02",DecToHex($private->p));
-    $Keyprime2 =          ASN1Wrap("02",DecToHex($private->q));
-    $Keyexponent1 =       ASN1Wrap("02",DecToHex($private->dp));
-    $Keyexponent2 =       ASN1Wrap("02",DecToHex($private->dq));
-    $Keycoefficient =     ASN1Wrap("02",DecToHex($private->u));
+    $Keymodulus =         ASN1Wrap("02",DecToHex($key{Modulus}));
+    $KeypublicExponent =  ASN1Wrap("02",DecToHex($key{PublicExponent}));
+    $KeyprivateExponent = ASN1Wrap("02",DecToHex($key{PrivateExponent}));
+    $Keyprime1 =          ASN1Wrap("02",DecToHex($key{Prime1}));
+    $Keyprime2 =          ASN1Wrap("02",DecToHex($key{Prime2}));
+    $Keyexponent1 =       ASN1Wrap("02",DecToHex($key{Exponent1}));
+    $Keyexponent2 =       ASN1Wrap("02",DecToHex($key{Exponent2}));
+    $Keycoefficient =     ASN1Wrap("02",DecToHex($key{Iqmp}));
 
     $Privatekey=ASN1Wrap("30",$Keyversion.$Keymodulus.$KeypublicExponent.$KeyprivateExponent.
                                $Keyprime1.$Keyprime2.$Keyexponent1.$Keyexponent2.$Keycoefficient);

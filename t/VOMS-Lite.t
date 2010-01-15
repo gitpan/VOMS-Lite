@@ -10,7 +10,7 @@ use Test;
 use Sys::Hostname;
 my $host = hostname;
 
-BEGIN { plan tests => 20 };
+BEGIN { plan tests => 21 };
 
 my $cwd = getcwd;
 my $etc="$cwd/etc";
@@ -20,22 +20,47 @@ if ( ! -d $etc ) { mkdir($etc) or die "no test etc directory"; }
 if ( ! -d $capath ) { mkdir($capath) or die "no test etc/certificates directory"; }
 
 #Make CA cert here
-eval "require VOMS::Lite::X509"; if ($@) { ok(0); print STDERR "$@"; } else { ok(1); }
 
-my %CA = %{ VOMS::Lite::X509::Create( { Serial=>0,
-                                            DN=>["C=ACME","O=VOMS::Lite","CN=VOMS::Lite Test CA"],
-                                            CA=>"True",
-                                          Bits=>512,
-                                      Lifetime=>172800 } ) };
 
-if (defined $CA{Cert} &&  defined $CA{Key} && ! defined $CA{Errors} ) { ok(1); } else { ok(0); print STDERR "Not Able to create a CA certificate\n" }
-eval "require VOMS::Lite::PEMHelper"; if ($@) { ok(0); print STDERR "$@"; } else { ok(1); }
+#----------------1
+eval "require VOMS::Lite::X509"; 
+if ($@) { ok(0); print STDERR "$@"; } else { ok(1); }
+
+#----------------2
+my $refCA;
+eval '$refCA = VOMS::Lite::X509::Create( { Serial=>0,
+                                               DN=>["C=ACME","O=VOMS::Lite","CN=VOMS::Lite Test CA"],
+                                                CA=>"True",
+                                              Bits=>512,
+                                          Lifetime=>172800 } );';
+if ($@) { print STDERR "$@"; ok(0); } else { ok(1); }
+
+my %CA = %{ $refCA };
+
+
+#----------------3
+if (defined $CA{Cert} &&  defined $CA{Key} && ! defined $CA{Errors} ) { ok(1); } else { print STDERR "#Not Able to create a CA certificate\n"; ok(0); }
+
+
+#----------------4
+eval "require VOMS::Lite::PEMHelper"; 
+if ($@) { ok(0); print STDERR "$@"; } else { ok(1); }
+
 my $CAcert="$capath/$CA{'Hash'}.0";
 my $CAkey="$capath/$CA{'Hash'}.k0";
+
+
+#----------------5
 eval { VOMS::Lite::PEMHelper::writeCert("$CAcert", $CA{'Cert'});          }; if ($@) { ok(0); print STDERR "$@"; } else { ok(1); }
+
+
+#----------------6
 eval { VOMS::Lite::PEMHelper::writeKey("$CAkey", $CA{'Key'}, 'testpass'); }; if ($@) { ok(0); print STDERR "$@"; } else { ok(1); }
 
+
 #Make host certificate here
+
+#----------------7
 my %host = %{ VOMS::Lite::X509::Create( { Serial=>1,
                                           CACert=>$CA{'Cert'},
                                            CAKey=>$CA{'Key'},
@@ -45,10 +70,19 @@ my %host = %{ VOMS::Lite::X509::Create( { Serial=>1,
                                   subjectAltName=>["dNSName=$host"],
                                         Lifetime=>86400 } ) };
 if (defined $host{Cert} &&  defined $host{Key} && ! defined $host{Errors} ) { ok(1); } else { ok(0); print STDERR "Not Able to create a host certificate\n"; }
+
+
+#----------------8
 eval { VOMS::Lite::PEMHelper::writeCert("$etc/vomscert.pem", $host{'Cert'});  }; if ($@) { ok(0); print STDERR "$@"; } else { ok(1); }
+
+
+#----------------9
 eval { VOMS::Lite::PEMHelper::writeKey("$etc/vomskey.pem", $host{'Key'}, ''); }; if ($@) { ok(0); print STDERR "$@"; } else { ok(1); }
 
 #Make user certificate here
+
+
+#----------------10
 my %user = %{ VOMS::Lite::X509::Create( { Serial=>2,
                                           CACert=>$CA{'Cert'},
                                            CAKey=>$CA{'Key'},
@@ -58,17 +92,33 @@ my %user = %{ VOMS::Lite::X509::Create( { Serial=>2,
                                   subjectAltName=>["rfc822Name=root\@$host"],
                                         Lifetime=>86400 } ) };
 if (defined $user{Cert} &&  defined $user{Key} && ! defined $user{Errors} ) { ok(1); } else { ok(0); print STDERR "Not Able to create a user certificate\n"; }
+
+
+#----------------11
 eval { VOMS::Lite::PEMHelper::writeCert("$etc/usercert.pem", $user{'Cert'}); }; if ($@) { ok(0); print STDERR "$@"; } else { ok(1); }
+
+
+#----------------12
 eval { VOMS::Lite::PEMHelper::writeKey("$etc/userkey.pem", $user{'Key'}, 'testing'); }; if ($@) { ok(0); print STDERR "$@"; } else { ok(1); }
 
 #Make proxy certificate here
+
+
+#----------------13
 eval "require VOMS::Lite::PROXY"; if ($@) { ok(0); print STDERR "$@"; } else { ok(1); }
+
+
+#----------------14
 my %proxy = %{ VOMS::Lite::PROXY::Create( { Cert=>$user{'Cert'},
                                              Key=>$user{'Key'},
                                             Type=>"Legasy",
                                         Lifetime=>36000 } ) };
 if (defined $proxy{ProxyCert} &&  defined $proxy{ProxyKey} && ! defined $proxy{Errors} ) { ok(1); } else { ok(0); print STDERR "Not Able to create a proxy certificate\n"; }
-eval { VOMS::Lite::PEMHelper::writeCertKey("$etc/proxy", $proxy{'ProxyCert'}, $proxy{'ProxyKey'}, [ $user{'Cert'} ] ); }; if ($@) { ok(0); print STDERR "$@"; } else { ok(1); }
+
+
+#----------------15
+eval { VOMS::Lite::PEMHelper::writeCertKey("$etc/proxy", $proxy{'ProxyCert'}, $proxy{'ProxyKey'}, ( $user{'Cert'} ) ); }; if ($@) { ok(0); print STDERR "$@"; } else { ok(1); }
+
 
 open (CONF,">$etc/voms.conf") or die "Failed to create $etc/voms.conf";
 print CONF <<EOF;
@@ -86,12 +136,23 @@ chmod 0600, "$etc/voms.conf";
 
 # Test VOMS::Lite
 $ENV{'VOMS_CONFIG_FILE'} = "$etc/voms.conf";
-eval "use VOMS::Lite"; if ($@) { ok(0); print STDERR "$@";  } else { ok(1); }
 
+
+#----------------16
+eval "use VOMS::Lite"; if ($@) { ok(0); print STDERR "$@";  } else { ok(1); }
 my $ref=VOMS::Lite::Issue( [$user{Cert}, $CA{Cert}], "/Dummy" );
 my %AC=%$ref;
+
+
+#----------------17
 if (defined $AC{Errors}  ) { ok(0); print STDERR "There were errors producing the AC\n"; } else { ok(1); }
+
+
+#----------------18
 if (defined $AC{AC}      ) { ok(1); } else { ok(0); print STDERR "No AC was produced\n"; }
+
+
+#----------------19
 if (defined $AC{Attribs} && "@{ $AC{Attribs} }" eq "/Dummy/Role=NULL/Capability=NULL" ) { ok(1); } else { ok(0); print STDERR "No Attributes were returned from VOMS::Lite::Issue\n"; }
 
 foreach my $key (keys %AC) {
@@ -104,8 +165,13 @@ foreach my $key (keys %AC) {
 }
 
 my $ACpemstr;
-eval { $ACpemstr=VOMS::Lite::PEMHelper::encodeAC($AC{AC}); }; if ($@) { ok(0); print STDERR "$@";  } else { ok(1); }
-print $ACpemstr;
 
+
+#----------------20
+eval { $ACpemstr=VOMS::Lite::PEMHelper::encodeAC($AC{AC}); }; if ($@) { ok(0); print STDERR "$@";  } else { ok(1); }
+#print $ACpemstr;
+
+
+#----------------21
 eval { VOMS::Lite::PEMHelper::writeAC("$etc/AC",$AC{AC}); }; if ($@) { ok(0); print STDERR "$@"; } else { ok(1); }
 

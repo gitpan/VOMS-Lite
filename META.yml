@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:                VOMS-Lite
-version:             0.08
+version:             0.09
 abstract:            Perl extension for VOMS Attribute certificate creation
 license:             ~
 author:              
@@ -9,15 +9,13 @@ generated_by:        ExtUtils::MakeMaker version 6.42
 distribution_type:   module
 requires:     
     Crypt::DES_EDE3:               0
-    Crypt::Primes:                 0
-    Crypt::RSA::Key:               0
     Digest::MD2:                   0
     Digest::MD5:                   0
     Digest::SHA1:                  0
     File::Copy:                    0
     IO::Socket:                    0
+    IO::Socket::SSL:               0
     Math::BigInt:                  0
-    Math::BigInt::GMP:             0
     MIME::Base64:                  0
     Regexp::Common:                0
     Sys::Hostname:                 0

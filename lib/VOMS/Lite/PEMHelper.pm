@@ -11,7 +11,7 @@ use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 %EXPORT_TAGS = ( );
 @EXPORT_OK = qw( encodeCert writeAC encodeAC readAC readCert decodeCert writeKey writeCert writeCertKey readPrivateKey );
 @EXPORT = ( );
-$VERSION = '0.08';
+$VERSION = '0.09';
 
 ################################################################
 
@@ -96,8 +96,7 @@ sub encodeCert {
   $type =~ s/[^A-Z0-9 ]//g;
   foreach (@_) {
     my $OpenSSLCompat=encode_base64($_,'');
-    $OpenSSLCompat=~s/(.{64})/$&\n/g; 
-    $OpenSSLCompat=~s/([^\x0a])$/$&\n/s;
+    $OpenSSLCompat=~s/(.{1,64})/$&\n/g; 
     $certstr .= "-----BEGIN $type-----\n".$OpenSSLCompat."-----END $type-----\n";
   }
   return $certstr;
@@ -119,7 +118,7 @@ sub writeCertKey {
   open(CERTKEY,">$file") || die "Can't create file to save cert and key to.";
   print CERTKEY encodeCert($pub,"CERTIFICATE");
   print CERTKEY encodeCert($pri,"RSA PRIVATE KEY");
-  foreach (@_) { print CERTKEY encodeCert($_,"CERTIFICATE"); }
+  foreach ( @_ ) { print CERTKEY encodeCert($_,"CERTIFICATE"); }
   close(CERTKEY);
   umask($umasksave);
   return;
@@ -373,9 +372,11 @@ By EXPORT_OK the following functions:
 =head1 SEE ALSO
 
 RFC 1421 
+RFC 3447
 
 This module was originally designed for the SHEBANGS project at The University of Manchester.
 http://www.mc.manchester.ac.uk/projects/shebangs/
+now http://www.rcs.manchester.ac.uk/research/shebangs/
 
 Mailing list, shebangs@listserv.manchester.ac.uk
 

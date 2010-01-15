@@ -92,3 +92,13 @@ Revision history for Perl extension VOMS::Lite.
         - Fixed "multiline" search replace (binary data presenting \n) 
           in VOMS communications VOMS.pm adding the trailing modifier 
           to s/// => s///s
+
+0.09  Thu Jan 15 15:00:00 2010
+        - Added RSAKey library - due to issues of Crypt::RSA::Key 
+          or some of its dependencied not being relocatable.
+        - Removed dependency upon Crypt::RSA::Key
+        - Some minor fixes ( Errors should be an array reference in REQ.pm )
+        - Fixed myproxy scripts ARGV input checker 
+            (server address cannot start with '-').
+        - Fixed occasional error in PEM encoded data where 64 divides
+          base64 number of chars.

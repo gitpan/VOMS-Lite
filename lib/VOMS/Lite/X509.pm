@@ -2,20 +2,19 @@ package VOMS::Lite::X509;
 
 use 5.004;
 use strict;
-use VOMS::Lite::PEMHelper qw(readCert readAC readPrivateKey writeCertKey);
 use VOMS::Lite::ASN1Helper qw(ASN1OIDtoOID ASN1Index ASN1Wrap ASN1Unwrap ASN1UnwrapHex DecToHex Hex ASN1BitStr OIDtoASN1OID);
 use VOMS::Lite::KEY;
 use Digest::SHA1 qw(sha1_hex);
 use Digest::MD5 qw(md5);
-use Crypt::RSA::Key;
 use Time::Local qw(timegm);
+use VOMS::Lite::RSAKey;
 use VOMS::Lite::CertKeyHelper;
 
 require Exporter;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 @ISA = qw(Exporter);
 
-$VERSION = '0.08';
+$VERSION = '0.09';
 
 sub Examine {
   my ($decoded,$dataref)=@_;
@@ -465,33 +464,37 @@ sub Create {
   if ( @Errors > 0 ) { return { Errors => \@Errors} ; }
 
 # Generate Key Pair
-  my $keychain = new Crypt::RSA::Key;
-  my ($public, $private) = $keychain->generate ( Size => $context{'Bits'}, Verbosity => (defined $context{'Quiet'})?0:1 )
-                         or return { Errors => [ "Error in Key Generation: ".$keychain->errstr() ] } ;
+  my $keyref = VOMS::Lite::RSAKey::Create( { Bits => 512, Verbose => (defined $context{'Quiet'})?undef:"y" } );
+  if ( ! defined $keyref ) { return { Errors => [ "X509: Key Generation Failure" ] } ; }
+  my %key = %{ $keyref };
+  if ( defined $key{'Error'} ) { return { Errors => [ "X509: Error in Key Generation ".$key{'Error'} ] } ; }
+
 
 ###############################
 #OK Let's create an X509 Cred!#
 ###############################
 
 ### Create Key Pair ######################################################
-# Keyversion Keymodulus KeypublicExponent KeyprivateExponent Keyprime1 Keyprime2 Keyexponent1 Keyexponent2 Keycoefficient
+
+#   Keyversion Keymodulus KeypublicExponent KeyprivateExponent
+#   Keyprime1 Keyprime2 Keyexponent1 Keyexponent2 Keycoefficient
   my $Keyversion =         "020100";
-  my $Keymodulus =         ASN1Wrap("02",DecToHex($private->n));
-  my $KeypublicExponent =  ASN1Wrap("02",DecToHex($private->e));
-  my $KeyprivateExponent = ASN1Wrap("02",DecToHex($private->d));
-  my $Keyprime1 =          ASN1Wrap("02",DecToHex($private->p));
-  my $Keyprime2 =          ASN1Wrap("02",DecToHex($private->q));
-  my $Keyexponent1 =       ASN1Wrap("02",DecToHex($private->dp));
-  my $Keyexponent2 =       ASN1Wrap("02",DecToHex($private->dq));
-  my $Keycoefficient =     ASN1Wrap("02",DecToHex($private->u));
+  my $Keymodulus =         ASN1Wrap("02",DecToHex($key{Modulus}));
+  my $KeypublicExponent =  ASN1Wrap("02",DecToHex($key{PublicExponent}));
+  my $KeyprivateExponent = ASN1Wrap("02",DecToHex($key{PrivateExponent}));
+  my $Keyprime1 =          ASN1Wrap("02",DecToHex($key{Prime1}));
+  my $Keyprime2 =          ASN1Wrap("02",DecToHex($key{Prime2}));
+  my $Keyexponent1 =       ASN1Wrap("02",DecToHex($key{Exponent1}));
+  my $Keyexponent2 =       ASN1Wrap("02",DecToHex($key{Exponent2}));
+  my $Keycoefficient =     ASN1Wrap("02",DecToHex($key{Iqmp}));
 
   my $Privatekey=ASN1Wrap("30",$Keyversion.$Keymodulus.$KeypublicExponent.$KeyprivateExponent.
                                $Keyprime1.$Keyprime2.$Keyexponent1.$Keyexponent2.$Keycoefficient);
 
 # If this is to be selfsigned, set the CA's private key and modulus
   if ( ! defined $context{'CACert'} ) { 
-    $KI{Keymodulus}=DecToHex($private->n);
-    $KI{KeyprivateExponent}=DecToHex($private->d);
+    $KI{Keymodulus}=DecToHex($key{Modulus});
+    $KI{KeyprivateExponent}=DecToHex($key{PrivateExponent});
     $KI{Keymodulus} =~ s/(..)/pack("C",hex($&))/ge;
     $KI{KeyprivateExponent} =~ s/(..)/pack("C",hex($&))/ge;
   }
@@ -724,6 +727,7 @@ RFC3820
 
 This module was originally designed for the SHEBANGS project at The University of Manchester.
 http://www.mc.manchester.ac.uk/projects/shebangs/
+now http://www.rcs.manchester.ac.uk/research/shebangs/
 
 Mailing list, shebangs@listserv.manchester.ac.uk
 

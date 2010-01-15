@@ -9,7 +9,7 @@ require Exporter;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 @ISA = qw(Exporter);
 
-$VERSION = '0.08';
+$VERSION = '0.09';
 
 sub Get {
   my %context=%{ $_[0]};

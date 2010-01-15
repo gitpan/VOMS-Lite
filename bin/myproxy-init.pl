@@ -66,7 +66,7 @@ while ($_=shift @ARGV) {
     $server=$2;
     $port=$3;
   }
-  elsif ( /^([a-zA-Z0-9_-][a-zA-Z0-9_.-]+[a-zA-Z0-9_-])(?::([0-9]{1,5}))?$/ ) {
+  elsif ( /^([a-zA-Z0-9_][a-zA-Z0-9_.-]+[a-zA-Z0-9_])(?::([0-9]{1,5}))?$/ ) {
     $server=$1;
     $port=$2;
   }

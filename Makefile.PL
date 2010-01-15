@@ -14,16 +14,16 @@ my $RequiredModules={
                       Digest::SHA1    => 0,
 #                      Digest::MD4     => 0,
                       Digest::MD2     => 0,
-                      Crypt::Primes    => 0,
-#                      Crypt::DES => 0,               ##########New
+#                      Crypt::Primes    => 0,
                       Crypt::DES_EDE3 => 0,
-                      Crypt::RSA::Key => 0,
+#                      Crypt::RSA::Key => 0,  #No longer needed
                       Math::BigInt    => 0,
                       MIME::Base64    => 0,
                       Regexp::Common  => 0,
                       File::Copy      => 0,
                       Time::Local     => 0,
                       IO::Socket      => 0,
+                      IO::Socket::SSL => 0,    #MyProxy needs this
                       Sys::Hostname   => 0
                     };
 
@@ -37,10 +37,12 @@ my %optionals=( Math::BigInt::GMP  => "speeds signing and encrypting up by betwe
 #               ,DBD::Oracle        => "would be used if connection to a gLite VOMS Oracle Data base is required\nNB you need an Oracle client installed"
               );
 
+if ( $UsingCPAN ) {
+
 # Ask whether to make optional dependencies prerequisites.
-foreach $optional (keys %optionals) {
-  if ( ! eval "require $optional" ) {
-    print <<EOF;
+  foreach $optional (keys %optionals) {
+    if ( ! eval "require $optional" ) {
+      print <<EOF;
 
 $optional is not installed.
 While this is not a requirement, you may want to include it in the
@@ -50,8 +52,6 @@ $optional
   $optionals{$optional}
 EOF
 
-#    if ( $UsingCPAN ) {
-#$CPAN::DEBUG=999999;
       print <<EOF;
 
 I see you're using CPAN to install VOMS::Lite (a wise choice).
@@ -62,28 +62,7 @@ EOF
       if ($answer =~ /^\s*y/i) {
         $$RequiredModules{$optional}=0;
       }
-#    }
-#    else { # If not using CPAN
-#      print <<EOF;
-#
-#I see you're installing VOMS::Lite by hand. If you wish,
-#I can try to use CPAN to download and install $optional.
-#EOF
-#      my $answer = ExtUtils::MakeMaker::prompt("Shall I attempt to install $optional with CPAN?", "yes");
-#      if ($answer =~ /^\s*y/i) { 
-#        if ( eval "require CPAN" ) { # Can I load CPAN?
-#          $CPAN::Config{ftp_passive}=q[1];
-#          $ENV{FTP_PASSIVE} = 1;
-#          $CPAN::Config{prerequisites_policy}='follow';
-##$CPAN::DEBUG=999999;
-#          CPAN::install $optional;
-#        }
-#        else { # I can't load CPAN
-#          print "Can't find CPAN on your system, sorry the CPAN install won't work!\n";
-#          $$RequiredModules{$optional}=0;
-#        }
-#      }
-#    }
+    }
   }
 }
 
@@ -104,7 +83,6 @@ EOF
           $CPAN::Config{ftp_passive}=q[1];
           $ENV{FTP_PASSIVE} = 1;
           $CPAN::Config{prerequisites_policy}='follow';
-#$CPAN::DEBUG=999999;
           CPAN::install $required;
         }
         else {# I can't load CPAN

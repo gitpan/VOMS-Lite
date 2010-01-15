@@ -22,6 +22,7 @@ lib/VOMS/Lite/PEMHelper.pm
 lib/VOMS/Lite/PROXY.pm
 lib/VOMS/Lite/REQ.pm
 lib/VOMS/Lite/RSAHelper.pm
+lib/VOMS/Lite/RSAKey.pm
 lib/VOMS/Lite/VOMS.pm
 lib/VOMS/Lite/X509.pm
 lib/VOMS/Lite.pm

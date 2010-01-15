@@ -24,7 +24,7 @@ while ($_=shift @ARGV) {
     $lifetime*=3600;
     $Input{"Lifetime"}=$lifetime;
   }
-  elsif ( /^([\/a-zA-Z0-9_ =.-]+)@([a-zA-Z0-9_-][a-zA-Z0-9_.-]+[a-zA-Z0-9_-])(?::([0-9]{1,5}))?$/ ) {
+  elsif ( /^([\/a-zA-Z0-9_ =.-]+)@([a-zA-Z0-9_][a-zA-Z0-9_.-]+[a-zA-Z0-9_])(?::([0-9]{1,5}))?$/ ) {
     $Input{"Username"}=$1;
     $Input{"Server"}=$2;
     $Input{"Port"}=$3;
