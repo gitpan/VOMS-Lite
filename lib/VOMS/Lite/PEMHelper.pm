@@ -11,7 +11,7 @@ use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 %EXPORT_TAGS = ( );
 @EXPORT_OK = qw( encodeCert writeAC encodeAC readAC readCert decodeCert writeKey writeCert writeCertKey readPrivateKey );
 @EXPORT = ( );
-$VERSION = '0.09';
+$VERSION = '0.10';
 
 ################################################################
 
@@ -31,8 +31,7 @@ sub writeAC {  #writes a PEM formatted AC
 ################################################################
 
 sub encodeAC {
-  my ($data)=@_;
-  return encodeCert($data,"ATTRIBUTE CERTIFICATE");
+  return encodeCert(@_,"ATTRIBUTE CERTIFICATE");
 }
 
 ################################################################
@@ -57,7 +56,7 @@ sub readCert {  #Returns BERs with CERTs in them
   my @myCertData=();
   my $Certnum=-1;
   my $read=0;
-  open(CERT,"<$file") || die "Can't access Puplic Key file: $file";
+  open(CERT,"<$file") || die "Can't access Public Key file: '$file'";
   while (<CERT>) {
     my $line=$_;
     if ( $line =~ /^-----BEGIN $type-----$/ ) {$read=1; $Certnum++; next;}

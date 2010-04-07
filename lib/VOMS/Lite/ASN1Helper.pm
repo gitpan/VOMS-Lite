@@ -11,7 +11,7 @@ use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 %EXPORT_TAGS = ( );
 @EXPORT_OK = qw( Hex DecToHex ASN1BitStr ASN1Wrap ASN1UnwrapHex ASNLenStr ASN1Index ASN1Unwrap ASN1OIDtoOID OIDtoASN1OID);
 @EXPORT = (  );
-$VERSION = '0.09';
+$VERSION = '0.10';
 
 ##################################################
 
@@ -24,7 +24,7 @@ sub Hex { #Converts a binary string to a padded string of hex values
 
 ##################################################
 
-sub DecToHex { #Converts a 'integer' to a padded string of hex values
+sub DecToHex { #Converts an 'integer' to a padded string of hex values
   my $data=shift;
   return undef if ( ! defined $data );
   return "NaN" if ( $data !~ /^-?[0-9]+$/ );
@@ -145,7 +145,7 @@ sub ASNLenStr { #expects Hex String returns ASN1 length header
   return undef if ( ! defined $data );
 
   my $len=length($data)/2;
-  if ($len < 127) {
+  if ($len <= 127) {
     return unpack("H2",pack("i",$len));
   } else {
     my $lenlen=sprintf "%0x",$len;
@@ -227,7 +227,7 @@ There is no OO in this module, it's a very basic straightforward implementation 
   my $contents=ASN1Unwrap($data);
   my $contentshex=ASN1UnwrapHex($data);
   # or
-  my ($headerLength,$dataLength,$class,$constructed,$contents)=ASN1Unwrap($data);
+  my ($headerLength,$dataLength,$class,$constructed,$tag,$contents)=ASN1Unwrap($data);
 
   # To return the ASN.1 length header for a hex representation of some data
   my $LenghtHeaderHex=ASNLenStr($hexstr);

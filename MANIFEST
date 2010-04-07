@@ -4,6 +4,7 @@ example/PROXYINFO.pl
 example/ProxyChain.pl
 bin/cert-init.pl
 bin/cert-req.pl
+bin/examineAC.pl
 bin/extractVOMS.pl
 bin/myproxy-get.pl
 bin/myproxy-init.pl
@@ -12,6 +13,7 @@ bin/verifycert.pl
 bin/voms-ac-issue.pl
 bin/voms-proxy-init.pl
 lib/VOMS/Lite/Attribs/DBHelper.pm
+lib/VOMS/Lite/Audit.pm
 lib/VOMS/Lite/ASN1Helper.pm
 lib/VOMS/Lite/AC.pm
 lib/VOMS/Lite/CertKeyHelper.pm

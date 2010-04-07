@@ -2,20 +2,274 @@ package VOMS::Lite::AC;
 
 use 5.004;
 use strict;
-use VOMS::Lite::ASN1Helper qw(Hex DecToHex ASN1BitStr ASN1Wrap);
-use VOMS::Lite::CertKeyHelper qw(digestSign);
+use Time::Local;
+use VOMS::Lite::ASN1Helper qw(ASN1Unwrap ASN1OIDtoOID Hex DecToHex ASN1BitStr ASN1Wrap ASN1Index);
+use VOMS::Lite::CertKeyHelper qw(digestSign buildchain);
+use VOMS::Lite::PEMHelper qw(readCert);
 use VOMS::Lite::X509;
 use VOMS::Lite::KEY;
 use Sys::Hostname;
-use Regexp::Common qw (URI);
+#use Regexp::Common qw (URI);
 
 require Exporter;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 @ISA = qw(Exporter);
 
-$VERSION = '0.09';
+$VERSION = '0.10';
 
 #############################################
+sub Examine {
+  my ($decoded,$dataref)=@_;
+  $dataref={Start=>"",End=>"",FQANs=>"",IssuerDN=>"",HolderIssuerDN=>"",VOMSDIR=>"/etc/grid-security/vomsdir"} if( ! defined $dataref );
+  my %Values=%$dataref;
+  my @ASN1Index=ASN1Index($decoded);
+  my @Values;
+
+  return ( {Errors=>"Unable to parse attribute certificate"} ) if (@ASN1Index==0);
+
+  my ($index,$ignoreuntil)=(0,0);
+
+# Drill down into the certificate
+  shift @ASN1Index; # skip the wrapping of the attribute certificate sequence 
+  shift @ASN1Index; # skip the wrapping of the bundle of atribute certificate sequence
+
+# Get each AC  
+  my @ACs;
+  foreach (@ASN1Index) {
+    my ($CLASS,$CONSTRUCTED,$TAG,$HEADSTART,$HEADLEN,$CHUNKLEN) = @$_;
+    if ( $HEADSTART < $ignoreuntil ) { next; }
+    else {
+      push @ACs,[$CLASS,$CONSTRUCTED,$TAG,$HEADSTART,$HEADLEN,$CHUNKLEN];
+      $ignoreuntil=$HEADSTART+$HEADLEN+$CHUNKLEN;
+    }
+  }
+
+  foreach (@ACs) {
+    my %LocalValues;
+    my ($ACversion,$ACholder,$ACissuer,$ACalgorithmId,$ACSerial,$ACvalidity,$ACattribute,$ACUniqueId,$ACExtensions,$ACSignatureType,$ACSignature);
+    my ($CLASS,$CONSTRUCTED,$TAG,$HEADSTART,$HEADLEN,$CHUNKLEN)=@$_;
+    my ($TBSAC,$SIGType,$SIG);
+    $ignoreuntil=$HEADSTART+$HEADLEN;
+    my $ignoreafter=$HEADSTART+$HEADLEN+$CHUNKLEN;
+    my $index=0;
+    my $SIGSTART;
+    foreach (@ASN1Index) {
+      my ($CLASS,$CONSTRUCTED,$TAG,$HEADSTART,$HEADLEN,$CHUNKLEN) = @$_;
+      if ( $HEADSTART < $ignoreuntil ) { next; }
+      elsif ( $HEADSTART >= $ignoreafter ) { last; }
+      else {
+        if    ($index==0) { $TBSAC         = substr($decoded,$HEADSTART,($HEADLEN+$CHUNKLEN)); $index++; $SIGSTART=$HEADSTART+$HEADLEN+$CHUNKLEN; next;} #this is a container
+        elsif ($index==1) { $ACversion     = substr($decoded,$HEADSTART,($HEADLEN+$CHUNKLEN));}
+        elsif ($index==2) { $ACholder      = substr($decoded,$HEADSTART,($HEADLEN+$CHUNKLEN));}
+        elsif ($index==3) { $ACissuer      = substr($decoded,$HEADSTART,($HEADLEN+$CHUNKLEN));}
+        elsif ($index==4) { $ACalgorithmId = substr($decoded,$HEADSTART,($HEADLEN+$CHUNKLEN));}
+        elsif ($index==5) { $ACSerial      = substr($decoded,$HEADSTART,($HEADLEN+$CHUNKLEN));}
+        elsif ($index==6) { $ACvalidity    = substr($decoded,$HEADSTART,($HEADLEN+$CHUNKLEN));;}
+        elsif ($index==7) { $ACattribute   = substr($decoded,$HEADSTART,($HEADLEN+$CHUNKLEN));}
+        elsif ($index==8 && $HEADSTART < $SIGSTART) { $ACExtensions  = substr($decoded,$HEADSTART,($HEADLEN+$CHUNKLEN));}
+        elsif ($index==8) {$index++; next;}
+        elsif ($index==9) { $ACSignatureType = substr($decoded,$HEADSTART,($HEADLEN+$CHUNKLEN));}
+        elsif ($index==10){ $ACSignature   = substr($decoded,$HEADSTART,($HEADLEN+$CHUNKLEN)); last;}
+        $index++;
+        $ignoreuntil=$HEADSTART+$HEADLEN+$CHUNKLEN;
+      }
+    }
+# Extract the main components of the Attribute Certificate
+
+
+#Standard
+    if (defined $Values{TBSAC})           {$LocalValues{TBSAC}=$TBSAC;}
+    if (defined $Values{ACversion})       {$LocalValues{ACversion}=$ACversion;}
+    if (defined $Values{ACholder})        {$LocalValues{ACholder}=$ACholder;}
+    if (defined $Values{ACissuer})        {$LocalValues{ACissuer}=$ACissuer;}
+    if (defined $Values{ACalgorithmId})   {$LocalValues{ACalgorithmId}=$ACalgorithmId;}
+    if (defined $Values{ACSerial})        {$LocalValues{ACSerial}=$ACSerial;}
+    if (defined $Values{ACvalidity})      {$LocalValues{ACvalidity}=$ACvalidity;}
+    if (defined $Values{ACattribute})     {$LocalValues{ACattribute}=$ACattribute;}
+    if (defined $Values{ACExtensions})    {$LocalValues{ACExtensions}=$ACExtensions;}
+    if (defined $Values{ACSignatureType}) {$LocalValues{ACSignatureType}=$ACSignatureType;}
+    if (defined $Values{ACSignature})     {$LocalValues{ACSignature}=$ACSignature;}
+
+
+    if ($ACExtensions ne "" ) { 
+      my @ACExtensionIndex=ASN1Index($ACExtensions);
+      shift @ACExtensionIndex; #Unwrap extensions;
+      while (@ACExtensionIndex) {
+        my $Seqref=shift(@ACExtensionIndex);
+        my $OIDref=shift(@ACExtensionIndex);
+        my $OSref=shift(@ACExtensionIndex);
+        my $Critical=( $OSref =~ /\x01\x01[^\0]/ )?1:0;
+        $OSref=shift(@ACExtensionIndex) if ($Critical);
+        my $OID=substr($ACExtensions,(${ $OIDref }[3]+${ $OIDref }[4]),${ $OIDref }[5]);
+        my $OIDstr=ASN1OIDtoOID($OID);
+        if($OIDstr eq "2.5.29.56" && defined $Values{'noRevAvail'}) { 
+          $LocalValues{noRevAvail} = "\x01"; 
+        } 
+        if($OIDstr eq "2.5.29.35" && defined $Values{'authorityKeyIdentifier'}) {  
+          my $AKI=substr($ACExtensions,(${ $OSref }[3]+${ $OSref }[4]),${ $OSref }[5]);
+          $AKI=ASN1Unwrap($AKI);
+          $LocalValues{authorityKeyIdentifier}=$AKI;
+          $LocalValues{authorityKeyIdentifierSkid}   = undef;   #explicitly undefine these incase they were set in the call!
+          $LocalValues{authorityKeyIdentifierIssuer} = undef; #
+          $LocalValues{authorityKeyIdentifierSerial} = undef; #
+          until (length($AKI) == 0) {
+            my ($headlen,$reallen,$Class,$Constructed,$Tag,$str)=ASN1Unwrap($AKI);
+            $AKI=substr($AKI,($headlen+$reallen));
+            if    ($Tag==0) {$LocalValues{authorityKeyIdentifierSkid}=$str;}
+            elsif ($Tag==1) {$LocalValues{authorityKeyIdentifierIssuer}=$str;}
+            elsif ($Tag==2) {$LocalValues{authorityKeyIdentifierSerial}=Hex($str);}
+          }
+        } 
+        if($OIDstr eq "1.3.6.1.4.1.8005.100.100.11" && defined $Values{'vOMSTags'} ) {
+          $LocalValues{vOMSTags}=substr($ACExtensions,(${ $OSref }[3]+${ $OSref }[4]),${ $OSref }[5]); 
+        } 
+        if($OIDstr eq "1.3.6.1.4.1.8005.100.100.10" && ( defined $Values{'vOMSACCertList'} || defined $Values{Verify} ) ) {
+          my $SEQ=ASN1Unwrap(substr($ACExtensions,(${ $OSref }[3]+${ $OSref }[4]),${ $OSref }[5]));
+          my @DERs;
+          until (length($SEQ) == 0) {
+            my ($headlen,$reallen,$Class,$Constructed,$Tag,$cert)=ASN1Unwrap($SEQ);
+            $SEQ=substr($SEQ,($headlen+$reallen));
+            push @DERs,$cert;
+          }
+          $LocalValues{vOMSACCertList} = \@DERs;
+        } 
+      }  
+    }
+
+#Deep
+    if (defined $Values{Version} ) {
+      $LocalValues{Version} = ASN1Unwrap($ACversion);
+    }
+
+#To whom does the AC belong
+    if ( defined $Values{HolderIssuerDN} || defined $Values{HolderSerial} ) {
+      $Values{HolderSerial}=""; $Values{HolderIssuerDN}=""; # one doesn't make sense without the other makesure both are set
+      my $a0=ASN1Unwrap($ACholder);
+      my $SEQ=ASN1Unwrap($a0);
+      my ($headlen,$reallen,$Class,$Constructed,$Tag,$name)=ASN1Unwrap($SEQ);
+      my $int=ASN1Unwrap(substr($SEQ,($headlen+$reallen)));
+      $SEQ=ASN1Unwrap($name);
+      my @rdns=ASN1Index($SEQ);
+      while (@rdns) {
+        my ($CLASS,$CONSTRUCTED,$TAG,$HEADSTART,$HEADLEN,$CHUNKLEN)=(0,0,0,0,0);
+        until ($TAG == 6 ) { ($CLASS,$CONSTRUCTED,$TAG,$HEADSTART,$HEADLEN,$CHUNKLEN) = @{shift @rdns}; }
+        my $OID=substr($SEQ,($HEADSTART+$HEADLEN),$CHUNKLEN);
+        ($CLASS,$CONSTRUCTED,$TAG,$HEADSTART,$HEADLEN,$CHUNKLEN) = @{shift @rdns};
+        my $Value=substr($SEQ,($HEADSTART+$HEADLEN),$CHUNKLEN);
+        $LocalValues{HolderIssuerDN}.="/".VOMS::Lite::CertKeyHelper::OIDtoDNattrib(ASN1OIDtoOID($OID))."=$Value";
+      }
+      $LocalValues{HolderSerial} = "0x".Hex($int);
+    }
+
+# Who was the Issuer
+    if ( defined $Values{IssuerDN} || defined $Values{Verify}) {
+      my $SEQ=ASN1Unwrap($ACissuer);
+      my $name=ASN1Unwrap($SEQ);
+      $SEQ=ASN1Unwrap($name);
+      my @rdns=ASN1Index($SEQ);
+      while (@rdns) {
+        my ($CLASS,$CONSTRUCTED,$TAG,$HEADSTART,$HEADLEN,$CHUNKLEN)=(0,0,0,0,0);
+        until ($TAG == 6 ) { ($CLASS,$CONSTRUCTED,$TAG,$HEADSTART,$HEADLEN,$CHUNKLEN) = @{shift @rdns}; }
+        my $OID=substr($SEQ,($HEADSTART+$HEADLEN),$CHUNKLEN);
+        ($CLASS,$CONSTRUCTED,$TAG,$HEADSTART,$HEADLEN,$CHUNKLEN) = @{shift @rdns};
+        my $Value=substr($SEQ,($HEADSTART+$HEADLEN),$CHUNKLEN);
+        $LocalValues{IssuerDN}.="/".VOMS::Lite::CertKeyHelper::OIDtoDNattrib(ASN1OIDtoOID($OID))."=$Value";
+      }
+    }
+
+# What was/were the Attribute(s)
+  if ( defined $Values{PA} || defined $Values{FQANs} ) {
+    my @AttrIndex=ASN1Index($ACattribute);
+    my @Attrs;
+    my $PA;
+      my ($CLASS,$CONSTRUCTED,$TAG,$HEADSTART,$HEADLEN,$CHUNKLEN)=(0,0,-1,0,0);
+      until ($CLASS==2 && $TAG == 6 ) { ($CLASS,$CONSTRUCTED,$TAG,$HEADSTART,$HEADLEN,$CHUNKLEN) = @{shift @AttrIndex}; }
+      $PA=substr($ACattribute,($HEADSTART+$HEADLEN),$CHUNKLEN);
+    while (@AttrIndex) {
+      my ($CLASS,$CONSTRUCTED,$TAG,$HEADSTART,$HEADLEN,$CHUNKLEN)=(0,0,-1,0,0);
+      until ($CLASS==0 && $TAG == 4 ) { ($CLASS,$CONSTRUCTED,$TAG,$HEADSTART,$HEADLEN,$CHUNKLEN) = @{shift @AttrIndex}; }
+      my $Value=substr($ACattribute,($HEADSTART+$HEADLEN),$CHUNKLEN);
+      push @Attrs,$Value;
+    }
+    $LocalValues{PA}=$PA;
+    $LocalValues{FQANs}=\@Attrs;
+  }
+
+# Values of Start and End Time Seconds since Epoch
+    if (defined $Values{Start} || defined $Values{End}) {
+      my @validity=ASN1Unwrap($ACvalidity);
+      my @st=ASN1Unwrap($validity[5]);
+      my @et=ASN1Unwrap(substr($validity[5],$st[0]+$st[1]));
+      if    ( $st[4] eq "23" && $st[5]=~ /^(..)(..)(..)(..)(..)(..)Z$/ )   { $LocalValues{Start} = timegm($6,$5,$4,$3,($2-1),$1); }
+      elsif ( $st[4] eq "24" && $st[5]=~ /^(....)(..)(..)(..)(..)(..)Z$/ ) { $LocalValues{Start} = timegm($6,$5,$4,$3,($2-1),$1); }
+      if    ( $et[4] eq "23" && $et[5]=~ /^(..)(..)(..)(..)(..)(..)Z$/ )   { $LocalValues{End}   = timegm($6,$5,$4,$3,($2-1),$1); }
+      elsif ( $et[4] eq "24" && $et[5]=~ /^(....)(..)(..)(..)(..)(..)Z$/ ) { $LocalValues{End}   = timegm($6,$5,$4,$3,($2-1),$1); }
+    }
+
+# Signature Value
+    if (defined $Values{SignatureValue} || defined $Values{SignatureType} || defined $Values{Verify}) {
+      $LocalValues{'EncSignatureValue'}=Hex(substr(ASN1Unwrap($ACSignature),1));
+      my $HexACSignature=Hex($ACSignatureType);
+      if    ( $HexACSignature eq "300d06092a864886f70d0101040500" ) { $LocalValues{'SignatureType'}="md5WithRSA"; }
+      elsif ( $HexACSignature eq "300d06092a864886f70d0101050500" ) { $LocalValues{'SignatureType'}="sha1WithRSA"; }
+      elsif ( $HexACSignature eq "300d06092a864886f70d0101030500" ) { $LocalValues{'SignatureType'}="md4WithRSA"; }
+      elsif ( $HexACSignature eq "300d06092a864886f70d0101020500" ) { $LocalValues{'SignatureType'}="md2WithRSA"; }
+      else  { $LocalValues{'SignatureType'}="unrecognised"; }
+    }
+
+# Verify it
+    if (defined $Values{Verify}) {
+       my @ACIssuers;
+       if ( ! defined $Values{'VOMSDIR'} ) { $Values{'VOMSDIR'}="/etc/grid-security/vomsdir"; }
+       if ( -d $Values{'VOMSDIR'} ) {
+         opendir(my $dh, $Values{'VOMSDIR'});
+         @ACIssuers = grep { /^[^.]/ && -f "$Values{VOMSDIR}/$_" } readdir($dh);
+         closedir $dh;
+       }
+       $LocalValues{Verify}=0;
+
+       for (my $II=-1;$II<@ACIssuers;$II++) {
+          $Values{'IssuerDN'}="";  # set Issuer DN to be exported
+          $Values{'InternalVOMSCert'}=""; # set indicator of VOMS cert attached
+          my @decodedCERTS;
+          if ( $II == -1 ) { # 1st time round try attached certs. Assuming the certlist is a chain not a list of possible issuers
+            next if ( ! defined $LocalValues{vOMSACCertList} );
+            @decodedCERTS=@{ $LocalValues{vOMSACCertList} }; 
+            $LocalValues{'InternalVOMSCert'} = "Attached";
+          }
+          else { 
+            @decodedCERTS=readCert($Values{'VOMSDIR'}."/$ACIssuers[$II]"); 
+            $LocalValues{'InternalVOMSCert'} = "Local";
+          }
+
+          my %Chain = %{ buildchain( { trustedCAdirs => ["/etc/grid-security/certificates"], ####Can this be an option?
+                                       suppliedcerts => \@decodedCERTS, 
+                                       trustedCAs    => [] } ) };
+
+          next if ( @{ shift @{ $Chain{Errors} } } );
+          next if (! ${ $Chain{TrustedCA} }[-1] ); 
+          next if ( $Chain{'EndEntityDN'} ne $LocalValues{'IssuerDN'} );
+          my $X509REF=VOMS::Lite::X509::Examine($Chain{EndEntityCert},{Keymodulus=>"",KeypublicExponent=>""});
+          if (VOMS::Lite::CertKeyHelper::verifySignature(
+                                                          $LocalValues{'SignatureType'},
+                                                          $LocalValues{'EncSignatureValue'},
+                                                          $TBSAC,
+                                                          Hex(${ $X509REF }{'KeypublicExponent'}),
+                                                          Hex(${ $X509REF }{'Keymodulus'}))) {
+            $LocalValues{'Verify'} = 1 ; last;
+          }
+       }
+    }
+
+    push @Values,{};
+    foreach (keys %Values) { ${ $Values[-1] }{$_}=$LocalValues{$_}; }
+  }
+
+  return @Values;
+}
+
+
+###############################
 
 sub Create {
   my $inputref = shift;
@@ -68,7 +322,8 @@ sub Create {
   my @Targets=();
   if (defined $context{'Targets'} && $context{'Targets'} =~ /^ARRAY/ ) {
     foreach ( @{ $context{'Targets'} } ) {
-      if (/^($RE{URI})$/) { push @Targets, $1;}
+      if (/^([a-zA-Z0-9()'*~!._;\/?:\@&=+\$,#-]|%[a-fA-F0-9]{2})+$/) { push @Targets, $1; }
+#      if (/^($RE{URI})$/) { push @Targets, $1;}   --- Regexp: a sledge hammer -- we shouldn't be so prescriptive
       else { push @error, "VOMS::Lite::AC: At least 1 target was an invalid URI (see eg RFC2396)";}
     }
   }
@@ -102,8 +357,9 @@ sub Create {
   my $VOMSURI=$Group."://".$Server.":".$Port;
 
 # Get times Now and Now + N hours
-  my @NOW=gmtime(time());
-  my @FUT=gmtime(time()+$Lifetime);
+  my $NOW=time();
+  my @NOW=gmtime($NOW);
+  my @FUT=gmtime($NOW+$Lifetime);
   my $NotBeforeDate = sprintf("%04i%02i%02i%02i%02i%02iZ",($NOW[5]+1900),($NOW[4]+1),$NOW[3],$NOW[2],$NOW[1],$NOW[0]);
   my $NotAfterDate  = sprintf("%04i%02i%02i%02i%02i%02iZ",($FUT[5]+1900),($FUT[4]+1),$FUT[3],$FUT[2],$FUT[1],$FUT[0]);
 
@@ -116,7 +372,7 @@ sub Create {
   my $AttCertVersion="020101";
 
 # Holder of Attribute.  This this is a sequence containing the holder certificate's issuer DN and serial. 
-  my $HolderIssuer            = Hex( ( defined $Broken ) ? $CERTINFO{X509subject}:$CERTINFO{X509issuer} );
+  my $HolderIssuer            = Hex( ( defined $Broken && $Broken ) ? $CERTINFO{X509subject}:$CERTINFO{X509issuer} );
   my $HolderSerial            = Hex( $CERTINFO{X509serial} );
   my $HolderInfo              = ASN1Wrap( "30",ASN1Wrap( "a4",$HolderIssuer ) ).$HolderSerial;
   my $Holder                  = ASN1Wrap( "30",ASN1Wrap( "a0",$HolderInfo ) );

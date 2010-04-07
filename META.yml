@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:                VOMS-Lite
-version:             0.09
+version:             0.10
 abstract:            Perl extension for VOMS Attribute certificate creation
 license:             ~
 author:              
@@ -17,7 +17,6 @@ requires:
     IO::Socket::SSL:               0
     Math::BigInt:                  0
     MIME::Base64:                  0
-    Regexp::Common:                0
     Sys::Hostname:                 0
     Term::ReadKey:                 0
     Time::Local:                   0

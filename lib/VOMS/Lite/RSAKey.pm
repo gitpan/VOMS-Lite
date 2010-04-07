@@ -9,21 +9,32 @@ require Exporter;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 @ISA = qw(Exporter);
 
-$VERSION = '0.09';
+$VERSION = '0.10';
 
 my $DefaultRandom=undef;
 my ($CryptCtx,$Generator);
-if ( -e "/dev/urandom" ) { $DefaultRandom="/dev/urandom"; }
-else {
+my $urdev="/dev/urandom";
+if ( -c $urdev && -r $urdev ) { $DefaultRandom="/dev/urandom"; }
+elsif ( -l $urdev && -r $urdev ) {
+  my $link=$urdev;
+  while ( -l $link ) {
+    my ($dir) = $link =~ m{(.*?)[^/]*$};
+    $link = readlink($link);
+    $link =~ s#^([^/])#$dir$1#;
+    $link =~ s#//#/#g;
+    $link =~ s#/[^/]*/../##g;
+  }
+  if ( -c $link && -r $link ) { $DefaultRandom=$link; }
+}
+else { # If no /dev/random perhaps we are in win32
   eval ' 
     use WIN32::API;
     sub WinRandom {
       my $CryptCtx=new Win32::API "advapi32","CryptAcquireContextA","PNNNN","N" or die "Cannot Create Crypt CTX";
-      my $Generator=new Win32::API "advapi32", "CryptGenRandom","NNP","N"||die "Cannot Access Random Generator\n";
+      my $Generator=new Win32::API "advapi32", "CryptGenRandom","NNP","N"||die "Cannot Access Random Generator";
       my $bytes=shift;
-      my $Generator = Win32::API->new("advapi32", "CryptGenRandom", "NNP", "N");
-      my $rnd = "\\0" x $bytes;       #i.e. char rnd[$bytes];
-      my $CSPHandle = "\\0" x 4;  #i.e. void* CSPHandle;
+      my $rnd = 0x00 x $bytes;       #i.e. char rnd[$bytes];
+      my $CSPHandle = 0x00 x 4;  #i.e. void* CSPHandle;
       my ($DEFAULTCONTAINER,$DEFAULTPROVIDER,$PROV_RSA_FULL,$CRYPT_VERIFYCONTEXT)=(0,0,1,0xF0000000);
       $CryptCtx->Call($CSPHandle,$DEFAULTCONTAINER,$DEFAULTPROVIDER,$PROV_RSA_FULL,$CRYPT_VERIFYCONTEXT);
       my $Addr=unpack("L",$CSPHandle);
@@ -32,9 +43,8 @@ else {
     }
     $DefaultRandom=\\&WinRandom;
   ';
+  if ( $@ ) { die "No random source at either $urdev vi the filesystem or CryptGenRandom via WIN32::API";}
 }
-
-die "No suitable random source found" if (! defined $DefaultRandom );
 
 sub Random {
 
@@ -68,9 +78,9 @@ sub Random {
 #Read in bytes from random 
   my $VAL;
   my $max=int(($input{'Bits'}+7) / 8 );
-  if ( ! -e $Random ) { #this is the windows stuff
+  if ( ref($Random) eq "CODE" ) { #this is the windows stuff
     my $max=int(($input{'Bits'}+7) / 8 );
-    $VAL=WinRandom($max);
+    $VAL=&{ $Random }($max);
     if ( $SizeInBits eq "yes" ) { $VAL =~ s/^./$& | chr(128)/es; }
     $VAL=~ s/./unpack('H2',$&)/ges;
   } 
@@ -80,7 +90,7 @@ sub Random {
     while ( $count < $max ) {
       $count ++;
       my $char;
-      read RND,$char,1; #print ".";
+      if ( read(RND,$char,1) != 1 ) { die "Not enough data for random read"; } 
       if ( $SizeInBits eq "yes" && $count == 1    && ord($char) < 128) { $char = $char | chr(128); }
       my $hexchar=unpack('H2',$char);
       $VAL .= $hexchar;
@@ -89,7 +99,6 @@ sub Random {
   }
 
   $VAL =~ s/^.(..)*$/0$&/;                  # Make even number of hex couplets
-
   my $x=Math::BigInt->new("0x$VAL");
 # Scale down to range
   if ( defined $input{'Range'} ) { 

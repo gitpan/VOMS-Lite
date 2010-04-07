@@ -27,7 +27,6 @@ This module requires these other modules and libraries:
   Digest::MD4
   Digest::MD2
   Crypt::DES_EDE3
-  Crypt::RSA::Key
   MIME::Base64
   IO::Socket
   Regexp::Common        -- for Target URIs in VOMS Credentials
@@ -53,7 +52,7 @@ Mike Jones <mike.jones@manchester.ac.uk>
 
 COPYRIGHT AND LICENCE
 
-Copyright (C) 2006 by Mike Jones
+Copyright (C) 2006-2010 by Mike Jones
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.3 or,

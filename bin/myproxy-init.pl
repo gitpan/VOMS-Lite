@@ -3,6 +3,7 @@
 use VOMS::Lite::PEMHelper qw(readCert readAC readPrivateKey);
 use VOMS::Lite::MyProxy;
 require Term::ReadKey;
+use strict;
 
 my $name=$0;
 my $lname=length($name);
@@ -19,8 +20,8 @@ my $usage = "Usage: $name [username@]myproxy.server[:port]\n".
 my %Input;
 my $HolderCert="$ENV{HOME}/.globus/usercert.pem";
 my $HolderKey="$ENV{HOME}/.globus/userkey.pem";
+my ($vomsattribfile,$pathlen,$lifetime,$releaselifetime,$outfile,$server,$port,$username);
 if ( defined $ENV{"X509_USER_PROXY"} && $ENV{"X509_USER_PROXY"} =~ /(.*)/ ) { $outfile=$1; };
-my ($vomsattribfile,$pathlen,$lifetime);
 
 while ($_=shift @ARGV) {
   if    ( /^--?cert$/ ) {
@@ -41,7 +42,7 @@ while ($_=shift @ARGV) {
   elsif ( /^--?limited$/ )      { $Input{'Type'}="Limited"; }
   elsif ( /^--?(new|gt3)$/ )    { $Input{'Type'}="Pre-RFC"; }
   elsif ( /^--?rfc$/ )          { $Input{'Type'}="RFC"; }
-  elsif ( /^--?(old|legasy)$/ ) { $Input{'Type'}="Legasy"; }
+  elsif ( /^--?(old|legacy)$/ ) { $Input{'Type'}="Legacy"; }
   elsif ( /^--?(pl|pathlength)$/ ) {
     $pathlen=shift @ARGV;
     die "$& requires an argument" if ( ! defined $pathlen );
@@ -108,13 +109,12 @@ if ( defined $Output{Errors} ) {
   foreach ( @{ $Output{Errors} } ) { print "Error:   $_\n"; }
   die "Failed to create proxy";
 }
-
 foreach ( @{ $Output{Warnings} } ) { print "Warning: $_\n"; }
 
 $lifetime =  int($Output{'Lifetime'}/3600) . "h " . int($Output{'Lifetime'} / 60) % 60 . "m " . $Output{'Lifetime'} % 60 . "s";
-$releasetime = int($Output{'ReleaseLifetime'}/3600) . "h " . int($Output{'Lifetime'} / 60 ) % 60 . "m " . $Output{'ReleaseLifetime'} % 60 . "s";
+$releaselifetime = int($Output{'ReleaseLifetime'}/3600) . "h " . int($Output{'ReleaseLifetime'} / 60 ) % 60 . "m " . $Output{'ReleaseLifetime'} % 60 . "s";
 
-print "Proxy Created $Output{Username}\@$Output{Server}".(($Output{Port} != 7512)?":$Output{Port}":"")."\nValid for $lifetime with a release policy lifetime restriction of\ncredentials lasting no longer than $releasetime.\n";
+print "Proxy Created $Output{Username}\@$Output{Server}".(($Output{Port} != 7512)?":$Output{Port}":"")."\nValid for $lifetime with a release policy lifetime restriction of $releaselifetime.\n";
 
 __END__
 

@@ -111,7 +111,7 @@ eval "require VOMS::Lite::PROXY"; if ($@) { ok(0); print STDERR "$@"; } else { o
 #----------------14
 my %proxy = %{ VOMS::Lite::PROXY::Create( { Cert=>$user{'Cert'},
                                              Key=>$user{'Key'},
-                                            Type=>"Legasy",
+                                            Type=>"Legacy",
                                         Lifetime=>36000 } ) };
 if (defined $proxy{ProxyCert} &&  defined $proxy{ProxyKey} && ! defined $proxy{Errors} ) { ok(1); } else { ok(0); print STDERR "Not Able to create a proxy certificate\n"; }
 

@@ -9,7 +9,12 @@ require Exporter;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 @ISA = qw(Exporter);
 
-$VERSION = '0.09';
+$VERSION = '0.10';
+
+END{
+  if ( -e "/tmp/mpcertfile.$<.$$" ) { unlink("/tmp/mpcertfile.$<.$$") };
+  if ( -e "/tmp/mpkeyfile.$<.$$" ) { unlink("/tmp/mpkeyfile.$<.$$") };
+}
 
 sub Get {
   my %context=%{ $_[0]};
@@ -37,11 +42,11 @@ sub Get {
 
 # IO::SOCKET::SSL may optionally use a cert and key on the file system;
   if ( defined $context{'Cert'} && ! defined $context{'CertFile'} ) {
-                                          writeCert("/tmp/mpcertfile$<",$context{'Cert'});
-                                          $context{'CertFile'} = "/tmp/mpcertfile$<"; }
+                                          writeCert("/tmp/mpcertfile.$<.$$",$context{'Cert'});
+                                          $context{'CertFile'} = "/tmp/mpcertfile.$<.$$"; }
   if ( defined $context{'Key'} && ! defined $context{'KeyFile'} )  {
-                                          writeKey("/tmp/mpkeyfile$<",$context{'Key'},"");
-                                          $context{'KeyFile'}  = "/tmp/mpkeyfile$<"; }
+                                          writeKey("/tmp/mpkeyfile.$<.$$",$context{'Key'},"");
+                                          $context{'KeyFile'}  = "/tmp/mpkeyfile.$<.$$"; }
 
 # Barf if data is not good
   if ( ! defined $Server )         { push @error, "VOMS::Lite::MyProxy::Get: Bad MyProxy server string"; }
@@ -191,10 +196,10 @@ sub Init {
   if ( ! defined $context{'Username'} ) { $Username = ${VOMS::Lite::PROXY::Examine($context{'Cert'},{SubjectDN=>""})}{'SubjectDN'}; }
 
 # IO::SOCKET::SSL needs a cert on the file system; VOMS::Lite needs a cert in memory
-  if ( ! defined $context{'CertFile'} ) { writeCert("/tmp/mpcertfile$<",$context{'Cert'});
-                                          $context{'CertFile'} = "/tmp/mpcertfile$<"; } 
-  if ( ! defined $context{'KeyFile'} )  { writeKey("/tmp/mpkeyfile$<",$context{'Key'},""); 
-                                          $context{'KeyFile'}  = "/tmp/mpkeyfile$<"; } 
+  if ( ! defined $context{'CertFile'} ) { writeCert("/tmp/mpcertfile.$<.$$",$context{'Cert'});
+                                          $context{'CertFile'} = "/tmp/mpcertfile.$<.$$"; } 
+  if ( ! defined $context{'KeyFile'} )  { writeKey("/tmp/mpkeyfile.$<.$$",$context{'Key'},""); 
+                                          $context{'KeyFile'}  = "/tmp/mpkeyfile.$<.$$"; } 
   if ( ! defined $context{'Cert'} )     { $context{'Cert'}     = readCert($context{'CertFile'}); }
   if ( ! defined $context{'Key'} )      { $context{'Key'}      = readPrivateKey($context{'KeyFile'}); }
 
@@ -289,7 +294,7 @@ sub Init {
   close $client;
 
   if ( $response !~ /RESPONSE=0/ ) { return { Errors => [ "VOMS::Lite::MyProxy::Init: Delegation failed:$response" ] }; }
-  return { Username => $Username, Password => $Password, Lifetime => $Lifetime, ReleaseLifetime => $ReleaseLife, Server => $Server, Port => $Port };
+  return { Username => $Username, Password => $Password, Lifetime => $Lifetime, ReleaseLifetime => $ReleaseLife, Server => $Server, Port => $Port, ProxyCert => $proxy{'ProxyCert'} };
 }
 
 1;
@@ -356,6 +361,7 @@ The return value is a reference to a hash containing
    Username, Password, Lifetime, Server, Port,
    Warnings => Reference to an array (A proxy will be delegated despite warnings)
    Errors => Reference to an array (It was not possible to delegate a proxy)
+   ProxyCert => A copy of the GSI proxy certificate delegated to the MyProxy Server DER encoded
 
 =head2 VOMS::Lite::MyProxy::Get
 

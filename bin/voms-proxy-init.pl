@@ -21,7 +21,7 @@ my $usage = "Usage: $name vomss://voms.server:port/VO[/Subgroup...[/Role=...[/Ca
 " " x ($lname+8). "[ -verbose  ]\n";
 
 my %Input;
-$Input{'Type'}="Legasy";
+$Input{'Type'}="Legacy";
 my $lifetime=43200;
 $Input{'Quiet'}="1";
 my $HolderCert="$ENV{HOME}/.globus/usercert.pem";
@@ -68,7 +68,7 @@ Warning: Although a VOMS enabled proxy certificate in RFC form is valid,
          and the identity assserted by an RFC proxy certificate.
 EOF
   }
-  elsif ( /^--?(old|legasy)$/ ) { $Input{'Type'}="Legasy"; }
+  elsif ( /^--?(old|legacy)$/ ) { $Input{'Type'}="Legacy"; }
   elsif ( /^--?(pl|pathlength)$/ ) {
     $pathlen=shift @ARGV;
     die "$& requires an argument" if ( ! defined $pathlen );
@@ -101,39 +101,53 @@ $ENV{HTTPS_CA_DIR}    = $CAPath;
 $ENV{HTTPS_CERT_FILE} = $HolderCert;
 $ENV{HTTPS_KEY_FILE}  = $HolderKey;
 my $AC;
+
+my %URI;
+my @URI;
 foreach (@VOMSURI) {
-  if ( m|vomss://([^:]+):([^/]+)(/.+)| ) {
-    print "Contacting $1:$2 for $3 using $HolderCert\n";
+  if ( m|(vomss://[^:]+:[^/]+)(/.+)| ) {
+    if ( defined $URI{$1} ) { push @{ $URI{$1}},$2; }
+    else { $URI{$1}=[$2]; push @URI,"$1"; }
+  } elsif ( m|https://[^:]+(?::[0-9]{1,5})?/.+| ) {
+    push @URI,$_;
+  }
+}
+
+foreach my $URI (@URI) {
+  if ( $URI =~ m|vomss://([^:]+):([^/]+)| ) {
+    print "Contacting $URI for ".(join(', ',@{ $URI{$URI} }))." using $HolderCert\n";
     my $ref = VOMS::Lite::VOMS::Get( { Server => "$1", 
                                          Port => $2, 
-                                        FQANs => [ "$3" ],
+                                        FQANs => $URI{$URI},
                                      Lifetime => $lifetime,
                                        CAdirs => $CAPath,
                                          Cert => $Input{'Cert'}, 
                                           Key => $Input{'Key'} } );
 
-    if (@{ ${ $ref }{Errors} } )   { print "Errors:\n  ".(join "\n  ", @{ ${ $ref }{Errors} }).".\n"; die "Failed to get $1:$2$3"; }
+    if (@{ ${ $ref }{Errors} } )   { print "Errors:\n  ".(join "\n  ", @{ ${ $ref }{Errors} }).".\n"; die "Failed to get ".join(', ',@{ $URI{$URI} }); }
     if (@{ ${ $ref }{Warnings} } and $verbose==1) { print "Warnings for $1:$2$3\n  ".(join "\n  ", @{ ${ $ref }{Warnings} }).".\n"; }
     $AC.=${ $ref }{'AC'}."\n";
   }
   elsif ( m|https://[^:]+(?::[0-9]{1,5})?/.+| ) {
-    my $req      = HTTP::Request->new( GET => $_, HTTP::Headers->new('Accept' => "text/plain"));
+    my $req      = HTTP::Request->new( GET => $URI, HTTP::Headers->new('Accept' => "text/plain"));
     my $agent    = LWP::UserAgent->new;
     my $response = $agent->request( $req );
-    print "Contacting $_\n";
+    print "Contacting $URI\n";
     if ( $response->is_success ) {
       $AC.=$response->content;
-      if ($verbose==1) { print "Server responded as follows:\n$AC\n\n"; }
+      if ($verbose) { print "Server responded as follows:\n$AC\n\n"; }
     } else {
-      if ( $verbose ) { print "Server responded as follows:\n".$response->as_string; }
-      die "Unable to obtain AC from $_";
+      if ($verbose) { print "Server responded as follows:\n".$response->as_string; }
+      die "Unable to obtain AC from $URI";
     }
   }
 }
 
 print "Creating Proxy\n";
+
 my @ACDER=decodeCert($AC,"ATTRIBUTE CERTIFICATE");
-$Input{'AC'}=$ACDER[0];
+$Input{'AC'}=join('',@ACDER);
+
 my %Output = %{ VOMS::Lite::PROXY::Create(\%Input) };
 if ( ! defined $Output{ProxyCert} || ! defined $Output{ProxyKey} ) {
   foreach ( @{ $Output{Errors} } ) { print "Error:   $_\n"; }

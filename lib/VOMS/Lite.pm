@@ -16,7 +16,7 @@ BEGIN {
   @EXPORT_OK = qw( Issue );
 }
 
-$VERSION = '0.09';
+$VERSION = '0.10';
 
 ###########################################################
 
@@ -34,7 +34,7 @@ if ( -r $configfile ) {
   if ( open(CONF,"<$configfile") ) {
     while (<CONF>) {
       chomp;
-      if ( /^(?:\s)*([a-zA-Z0-9_-]+)(?:\s)*=(?:\s)*(.+)$/ ) { $conf{"$1"} = $2; }
+      if ( /^\s*([a-zA-Z0-9_-]+)\s*=\s*(.+?)\s*$/ ) { $conf{"$1"} = $2; }
     }
     close CONF;
   } 
@@ -217,6 +217,15 @@ sub GetGridMapping {
 ###########################################################
 
 sub GetGridSiteAttribs {
+#    eval "use use LWP::UserAgent;";
+#    voms-proxy-init.pl:    
+#    my $agent    = LWP::UserAgent->new;
+#
+### Cert, 
+### get https://www.blah/primary.group/subgroup/Role=nuff
+#
+#
+#
     return { Serial => 01, Attribs=> [ "/GridSiteDummy/Role=NULL/Capability=NULL" ] };
 }
 
@@ -261,7 +270,7 @@ VOMS::Lite - Perl extension for VOMS Attribute certificate creation
 VOMS::Lite Provides an Issue routine which reads a configuration file in $ENV{'VOMS_CONFIG_FILE'} or else (if root) /etc/grid-security/voms.config, or else ~/.grid-security/voms.conf.
 
 Active lines in the config file must have the form:
-^(?:\s)*([a-zA-Z0-9_-]+)(?:\s)*=(?:\s)*(.+)$
+^\s*([a-zA-Z0-9_-]+)\s*=\s*(.+?)\s*$
 i.e.
   $1 = $2
 This will set values in the %conf hash (which is exported).
@@ -301,6 +310,7 @@ Also see gLite from the EGEE.
 
 This module was originally designed for the SHEBANGS project at The University of Manchester.
 http://www.mc.manchester.ac.uk/projects/shebangs/
+E<0x0a>now http://www.rcs.manchester.ac.uk/projects/shebangs/
 
 Mailing list, shebangs@listserv.manchester.ac.uk
 

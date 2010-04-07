@@ -130,6 +130,7 @@ VOMS::Lite
 
 This script was originally designed for SHEBANGS, a JISC funded project at The University of Manchester.
 http://www.mc.manchester.ac.uk/projects/shebangs/
+E<0x0a>now http://www.rcs.manchester.ac.uk/projects/shebangs/
 
 Mailing list, shebangs@listserv.manchester.ac.uk
 

@@ -3,6 +3,7 @@
 use VOMS::Lite::PEMHelper qw(readCert readAC readPrivateKey writeCertKey);
 use VOMS::Lite::ASN1Helper qw(ASN1Wrap ASN1Unwrap DecToHex Hex ASN1BitStr);
 use VOMS::Lite::PROXY;
+use VOMS::Lite::Audit;
 
 my $name=$0;
 my $lname=length($name);
@@ -11,6 +12,7 @@ my $usage = "Usage: $name [ -cert /path/to/cert.pem ]\n".
 " " x ($lname+8). "[ -key /path/to/cert's/key.pem ]\n".
 " " x ($lname+8). "[ -out /path/to/save/proxy ]\n".
 " " x ($lname+8). "[ -vomsAC /path/to/VOMS/AC ]\n".
+" " x ($lname+8). "[ -audit 'http://proxyaudit.endpoint' ]\n".
 " " x ($lname+8). "[ -lifetime N (hours, default 12 hours) ]\n".
 " " x ($lname+8). "[ -pl N  ]\n".
 " " x ($lname+8). "[ -(old|new|rfc|limited)  ]\n".
@@ -21,7 +23,7 @@ my $HolderCert="$ENV{HOME}/.globus/usercert.pem";
 my $HolderKey="$ENV{HOME}/.globus/userkey.pem";
 my $outfile="/tmp/x509up_u$<";
 if ( defined $ENV{"X509_USER_PROXY"} && $ENV{"X509_USER_PROXY"} =~ /(.*)/ ) { $outfile=$1; };
-my ($vomsattribfile,$pathlen,$lifetime);
+my ($vomsattribfile,$pathlen,$lifetime,$audit);
 
 while ($_=shift @ARGV) {
   if    ( /^--?cert$/ ) {
@@ -43,10 +45,14 @@ while ($_=shift @ARGV) {
     $outfile=shift @ARGV;
     die "$& requires an argument" if ( ! defined $outfile );
   }
+  elsif ( /^--?audit$/ ) {
+    $audit=shift @ARGV;
+    die "$& requires an argument" if ( ! defined $audit );
+  }
   elsif ( /^--?limited$/ )      { $Input{'Type'}="Limited"; }
   elsif ( /^--?(new|gt3)$/ )    { $Input{'Type'}="Pre-RFC"; }
   elsif ( /^--?rfc$/ )          { $Input{'Type'}="RFC"; }
-  elsif ( /^--?(old|legasy)$/ ) { $Input{'Type'}="Legasy"; }
+  elsif ( /^--?(old|legacy)$/ ) { $Input{'Type'}="Legacy"; }
   elsif ( /^--?(pl|pathlength)$/ ) {
     $pathlen=shift @ARGV;
     die "$& requires an argument" if ( ! defined $pathlen );
@@ -66,7 +72,10 @@ $Input{'Cert'}=$decodedCERTS[0];
 $Input{'Key'}=readPrivateKey($HolderKey);
 $Input{'Lifetime'}=$lifetime;
 $Input{'PathLength'}=$pathlen;
+
 if ( defined $vomsattribfile ) { $Input{'AC'}=readAC($vomsattribfile); }
+
+if ( defined $audit ) { $Input{'Ext'} = [ VOMS::Lite::Audit::Create("$audit") ]; }
 
 my %Output = %{ VOMS::Lite::PROXY::Create(\%Input) };
 
@@ -104,6 +113,7 @@ Creates a 512 bit proxy certificate optionally including a VOMS attribute certif
 This module was originally designed for SHEBANGS, a JISC funded project at The University of
  Manchester.
 http://www.mc.manchester.ac.uk/projects/shebangs/
+E<0x0a>now http://www.rcs.manchester.ac.uk/projects/shebangs/
 
 Mailing list, shebangs@listserv.manchester.ac.uk
 

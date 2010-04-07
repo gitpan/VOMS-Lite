@@ -93,7 +93,7 @@ Revision history for Perl extension VOMS::Lite.
           in VOMS communications VOMS.pm adding the trailing modifier 
           to s/// => s///s
 
-0.09  Thu Jan 15 15:00:00 2010
+0.09  Thu Jan 14 14:20:00 2010
         - Added RSAKey library - due to issues of Crypt::RSA::Key 
           or some of its dependencied not being relocatable.
         - Removed dependency upon Crypt::RSA::Key
@@ -102,3 +102,26 @@ Revision history for Perl extension VOMS::Lite.
             (server address cannot start with '-').
         - Fixed occasional error in PEM encoded data where 64 divides
           base64 number of chars.
+
+0.10  Wed Apr  7 17:51:31 2010
+        - Added library to create Audit extensions for proxy certificates
+        - Added option to allow Proxy Bitlength manipulation
+        - Added option to allow Proxy to start any time after 01 Jan 1970
+        - Corrected embarrasing smelling pistake "Legasy" -> "Legacy"
+        - Added AC examination and verification
+        - MyProxy uses better temp files, cleans theses up after use,
+            MyProxy::Init now returns ProxyCert as well.
+        - PEMHelper - minor changes to die statement in readCert()
+        - VOMS::Get now checks server against Subject Alt Name if necessary 
+            (warning returned if DN doesn't Match but Subject Alt Name does)
+        - VOMS improved Base64 handling: some VOMS servers return the encoding 
+            they wish despite B value in <base64>B</base64> message.
+            VOMS::Get Now examines message to determine which 
+            alphabet is being used.
+        - gLite's VOMS server no longer sends SSL Certificate Request
+            with acceptable CA list VOMS::Get: Changed unsupported CA error 
+            into a warning unless the data is available.
+        - Fixed ASN1Helper::ASNLenStr: boundary between single byte length 
+            encoding and multi byte length encoding now behaves correctly
+        - RSAkey now searches for character device at $DefaultRandom
+        - Removed Regexp dependency from AC::Create

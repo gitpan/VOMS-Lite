@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 
 use VOMS::Lite::PEMHelper qw(readCert writeAC);
+use VOMS::Lite::CertKeyHelper qw(buildchain);
 use VOMS::Lite::X509;
 
 my $cert=undef;
@@ -29,10 +30,23 @@ if ( ! defined $out ) {
 }
 
 my @cert=readCert($cert);
+my %Chain = %{ buildchain( { suppliedcerts => \@cert } ) };
 
-my $AC=${VOMS::Lite::X509::Examine($cert[0],{'Extension:1.3.6.1.4.1.8005.100.100.5' => "" })}{'Extension:1.3.6.1.4.1.8005.100.100.5'};
+my $got=0;
+for ( my $i=0;$i<@{ $Chain{Certs} };$i++) {
+  print "Checking ".${ $Chain{DistinguishedNames} }[$i]." for VOMS Attribute Extension ... ";
+  my $AC=${VOMS::Lite::X509::Examine($cert[$i],{'Extension:1.3.6.1.4.1.8005.100.100.5' => "" })}{'Extension:1.3.6.1.4.1.8005.100.100.5'};
 
-if ( $AC ne "" ) { writeAC($out,$AC); }
+  if ( $AC eq "" ) { print "Nope!\n";} 
+  elsif ( $got == 0 )  { 
+    print "Found!\nWriting it out to $out\n";
+    if ( $AC ne "" ) { writeAC($out,$AC); }
+    $got++;
+  }
+  else {
+    print "Found!\nNOT Writing it out to file\n";
+  }
+}
 
 __END__
 
@@ -54,6 +68,7 @@ Use -out to specift the filename to save the PEM encoded Attribute Certificate.
 
 This module was originally designed for SHEBANGS, a JISC funded project at The University of Manchester.
 http://www.mc.manchester.ac.uk/projects/shebangs/
+E<0x0a>now http://www.rcs.manchester.ac.uk/projects/shebangs/
 
 Mailing list, shebangs@listserv.manchester.ac.uk
 

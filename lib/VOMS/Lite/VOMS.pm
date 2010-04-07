@@ -14,7 +14,7 @@ use Crypt::CBC;
 require Exporter;
 use vars qw($VERSION $DEBUG @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 @ISA = qw(Exporter);
-$VERSION = '0.09';
+$VERSION = '0.10';
 
 BEGIN {
   $DEBUG='no';
@@ -34,7 +34,7 @@ sub recordLayer {
 sub debug {
   return if ( $DEBUG ne "yes" );
   my ($type,$out,$hex) = @_;
-  if ( $out =~ /^[\n -~]*$/ and ! defined($hex) ) { $out =~ s/.{1,60}/printf("%-19s %s\n",$type,$&),$type=""/ges; }
+  if ( $out =~ /^[\n -~]*$/ and ! defined($hex) ) { $out =~ s/(\n?)([^\n]{1,60})/$type.=(($1 eq "\n")?" +":"");printf("%-19s %s\n",$type,$2);$type=""/ges; }
   else                            { $out =~ s/(.{1,20})/$a=Hex($1), $a=~s|..|$& |g,printf("%-19s %s\n",$type,$a),$type=""/ges; }
   print $out;
 }
@@ -212,11 +212,17 @@ my @HOSTcerts=();
 while ( length($certcont)>3 && ($lcert=substr($certcont,0,3,''))) { 
   if ($lcert =~ /(.)(.)(.)/s ) { push @HOSTcerts, substr($certcont,0,(ord($1)*65536)+(ord($2)*256)+ord($3),''); }
 }
-my %ServerCertInfo= %{ VOMS::Lite::X509::Examine( $HOSTcerts[0], { SubjectDN=>"", IssuerDN=>"", Keymodulus=>"", KeypublicExponent=>"" }) };
+my %ServerCertInfo= %{ VOMS::Lite::X509::Examine( $HOSTcerts[0], { SubjectDN=>"", IssuerDN=>"", Keymodulus=>"", KeypublicExponent=>"", subjectAltNameArray=>[] }) };
 my $ServerDN=$ServerCertInfo{'SubjectDN'};
+my @SubjecyAltNames=@{ $ServerCertInfo{'subjectAltNameArray='} };
 debug("Server DN",$ServerDN);
-#Check server certificate matches !!!!! Should probably check subject alt name
-if ($ServerDN !~ m#/CN=($Server)(/|$)#) { return { Errors => ["Server Distinguished name mismatch expecting Certificate name containing CN=$Server got $ServerDN"], Warnings => \@warning }; }
+#Check server certificate matches ! Not matching against wildcards 
+if ($ServerDN !~ m#/CN=($Server)(/|$)#) {
+  my $match=0;
+#Else Check Subject Alt Name matches
+  foreach (@SubjecyAltNames) { debug("AltName",$_); if ($_ eq "dNSName=$Server") {$match=1; push @warning,"Using SubjectAltName to Match VOMS Server Certificate"} }
+  return { Errors => ["Server Distinguished name mismatch expecting Certificate name containing CN=$Server got $ServerDN"], Warnings => \@warning } if (!$match);
+}
 
 #Get ServerHello bits and pieces
 my $sHello                  = $Hand{2};
@@ -263,7 +269,8 @@ foreach (@ReqASN1DN) {
   if ($UserIDN eq $SubjectDN) { debug("MATCHED CA",$SubjectDN); $GotCA=1; } 
   else                        { debug("        CA:", $SubjectDN); }
 }
-if ( $GotCA==0 ) { return { Errors => ["VOMS server does not support your CA"], Warnings => \@warning }; }
+if ( @ReqASN1DN == 0 ) { push @warning, "VOMS server does not tell me what CAs are supported"; }
+elsif ( $GotCA==0 )    { return { Errors => ["VOMS server does not support your CA"], Warnings => \@warning }; }
 
 #########################################################
 #Talk to the server again
@@ -432,10 +439,12 @@ print $sock $datacont; print $sock $senddata;
   if ( $response !~ /^\x17/ ) { return { Errors => ["Expecting Encrypted Application Data, got something else"], Warnings => \@warning }; }
   my $apdata=&Decrypt($response,$ServerWriteMACSecret,$pad1sha,$pad2sha,$Sseq,$Scipher);
   my ($ac) = $apdata =~ /^.*<ac>([^<]*)<\/ac>.*$/;
+  $ac =~ s/[^a-zA-Z0-9_\+=\/\[\]-]//g;
   $apdata =~ s|<error><item><number>[0-9]{4,}</number><message>([^<]*)</message></item></error>|push(@error,"Error from VOMS Server: \"$1\"")|ge;
   $apdata =~ s|<error><item><number>[0-9]{1,3}</number><message>([^<]*)</message></item></error>|push(@warning,"Warning from VOMS Server: \"$1\"")|ge;
   if ( @error > 0 ) { return { Errors => \@error, Warnings => \@warning }; }
 #  my $vomsac=ASN1Wrap("30",ASN1Wrap("30",Hex(Decode($ac))));
+
   my $vomsac=Hex(Decode($ac));
   $vomsac=~ s/(..)/pack('C',hex($&))/ge;
   close($sock); 
@@ -444,13 +453,28 @@ print $sock $datacont; print $sock $senddata;
 
 sub Encode{ return undef;}
 sub Decode {
-  my $str="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789[]";
-  my ($data)=@_;
-  my $padlen = (length($data) % 4); ($padlen==3) and $padlen=1;
-  my $pad="a" x $padlen; $data.= $pad; #insert pad ourselves (a == \0)
-  $data=~s#(.)(.)(.)(.)#chr(((index($str,$1)<<2)&252)+((index($str,$2)>>4)&3)).chr(((index($str,$2)<<4)&240)+((index($str,$3)>>2)&15)).chr(((index($str,$3)<<6)&192)+((index($str,$4))&63))#ge;
-  $data=~s/..$//s if ($pad eq "aa");
-  $data=~s/.$//s if ($pad eq "a");
+  my $data = shift;
+  my $str = shift;  # Can supply custom Base64
+  my $pad="=";
+  if ( defined $str ) {
+    my $estr;
+    if ( $str =~ /^(.{64})(.?)$/s ) { $estr=quotemeta($1); $pad=($2)?"$2":"="; }
+    else { return undef; }
+    $data =~ s/^[^$estr]$//ogs; # remove non-base64 chars ### RFC says to be lenient in face of e.g. \0
+  }
+  else {
+    $data =~ s/[^a-zA-Z0-9\+\/\[\]=_-]//gs; # remove non-base64 chars
+    if ( $data =~ /^m[a-zA-Z0-9\[\]]+$/ )    { $str="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789[]"; } #VOMS Base64
+    elsif ( $data =~ /^M[a-zA-Z0-9\+\/]+={0,2}$/ ) { $str="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"; } #RFC3548 Base64
+    elsif ( $data =~ /^M[a-zA-Z0-9_-]+={0,2}$/ )   { $str="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-"; } #RFC3548 URL safe Base64
+    else { return undef; } # Mixed encodings
+  }
+  $data .= $pad x (3-(((length($data)+3) % 4)));
+  $data=~s|(.)(.)(.)(.)|
+              chr(((index($str,$1)<<2)&252)+((index($str,$2)>>4)&3)).                      #six bits from first with two bits from the second
+              (($3 ne "=")?chr(((index($str,$2)<<4)&240)+((index($str,$3)>>2)&15)):"").    #last 4 bits from second with four bits from third unless third is =
+              (($3 ne "=")?chr(((index($str,$3)<<6)&192)+((index($str,$4))&63)):"")        #last 2 bits from third with six bits from the forth unless third is =
+              |ge;
   return $data;
 }
 
@@ -577,6 +601,8 @@ http://glite.cvs.cern.ch/cgi-bin/glite.cgi/org.glite.security.voms
 RFC3281 and the VOMS Attribute Specification document from the OGSA Athuz Workin
 g Group of the Open Grid Forum http://www.ogf.org.
 Also see gLite from the EGEE.
+
+RFC3548 for Base64 encoding
 
 This module was originally designed for the JISC funded SARoNGS project at developed at 
 The University of Manchester.

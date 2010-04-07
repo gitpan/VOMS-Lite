@@ -14,7 +14,7 @@ use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 %EXPORT_TAGS = ( );
 @EXPORT_OK = qw(buildchain digestSign OIDtoDNattrib DNattribToOID);
 @EXPORT = ( );
-$VERSION = '0.09';
+$VERSION = '0.10';
 ##################################################
 
 # Define some common OIDs used in Distunguished names NB we're using UID and Email not UserID and emailAddress
@@ -120,13 +120,13 @@ sub verifychain {
 # Check GSIness
     if ( ! $SignerPurposeCA[-1] && ! $SignerCertSignPurpose[-1] && $lastkeyUsageDigitalSignature) {
       if    ( $CI{SubjectDN} eq "$CI{IssuerDN}/CN=proxy" ) { 
-        if    ( $CI{IssuerDN} =~ /\/CN=limited proxy$/ )           { push @GSIType,"Bad legasy proxy: issuer was limited" }
-        else                                                       { push @GSIType,"Legasy Proxy" } 
+        if    ( $CI{IssuerDN} =~ /\/CN=limited proxy$/ )           { push @GSIType,"Bad Legacy proxy: issuer was limited" }
+        else                                                       { push @GSIType,"Legacy Proxy" } 
       }
       elsif ( $CI{SubjectDN} eq "$CI{IssuerDN}/CN=limited proxy" ) { push @GSIType,"Limited Proxy"; }
       elsif ( $CI{ProxyInfo} eq 'RFC' || $CI{ProxyInfo} eq 'Pre-RFC' ) {
         if    ( $CI{SubjectDN} !~ /^$CI{IssuerDN}\/CN=[0-9]+$/ )   { push @GSIType,"Bad RFC proxy: issuer name mismatch" }
-        elsif ( $CI{IssuerDN} =~ /\/CN=(?:limited )?proxy$/ )      { push @GSIType,"Bad legasy proxy: issuer was legasy" }
+        elsif ( $CI{IssuerDN} =~ /\/CN=(?:limited )?proxy$/ )      { push @GSIType,"Bad legacy proxy: issuer was legacy" }
         else                                                       { push @GSIType,"$CI{ProxyInfo} Proxy"; } 
       }
       else                                                         { push @GSIType,"Bad proxy"; }
@@ -160,7 +160,7 @@ sub verifychain {
     if ( ! $Time[$i] )                            { push @errors, "Time error in certificate $i"; }
     if ( ! $Signed[$i] && ( $i!=0 || $Self[$i] )) { push @errors, "Bad signature on certificate $i"; }
     if ( $i!=0 && $Self[$i] )                     { push @errors, "Self signed certificate in at $i the chain"; }
-    if ( $GSIType[$i] !~ /^(?:Legasy|Limited|RFC|Pre-RFC) Proxy$/ && ( $i!=0 || $Self[$i] ) ) {
+    if ( $GSIType[$i] !~ /^(?:Lega[sc]y|Limited|RFC|Pre-RFC) Proxy$/ && ( $i!=0 || $Self[$i] ) ) {
       if ( ! $SignerPurposeCA[$i] )               { push @errors, "Signer of certificate $i is not a CA"; }
       if ( ! $SignerCertSignPurpose[$i] )         { push @errors, "Signer of certificate $i may not sign certificates"; }
     }

@@ -13,7 +13,7 @@ require Exporter;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 @ISA = qw(Exporter);
 
-$VERSION = '0.09';
+$VERSION = '0.10';
 
 sub Examine {
   return VOMS::Lite::X509::Examine(@_);
@@ -48,40 +48,54 @@ sub Create {
   if ( @Errors > 0 ) { return { Errors => \@Errors} ; }
 
 # Load optional values
-  my $type        = ((( defined  $context{'Type'}       && $context{'Type'}       =~ /^(Legasy|Limited|Pre-RFC|RFC)$/) ) ? $& : undef);
+  my $type        = ((( defined  $context{'Type'}       && $context{'Type'}       =~ /^(Lega[cs]y|Limited|Pre-RFC|RFC)$/) ) ? $& : undef);
+  if ( $type eq "Legasy" ) { $type = "Legacy"; $context{'Type'}="Legacy"; }  # oops was going through a bad spell! 
   my $pathlen     = ((( defined  $context{'PathLength'} && $context{'PathLength'} =~ /^([0-9]+)$/s) ) ?                    $& : undef);
+  my $bits        = ((( defined  $context{'Bits'}       && $context{'Bits'}       =~ /^(512|1024|2048|4096)$/s) ) ?        $& : undef);
   my $lifetime    = ((( defined  $context{'Lifetime'}   && $context{'Lifetime'}   =~ /^([0-9]+)$/s) ) ?                    $& : undef);
+  my $start       = ((( defined  $context{'Start'}      && $context{'Start'}      =~ /^([0-9]+)$/s) ) ?                    $& : undef);
   my $AC          = ((( defined  $context{'AC'}         && $context{'AC'}         =~ /^(\060.+)$/s) ) ?                    $& : undef);
+  my @Ext;
+  if ( defined $context{'Ext'} ) { 
+    if ( ref ($context{'Ext'}) eq "ARRAY" ) { @Ext = @{ $context{'Ext'} }; }
+    else { push @Errors,"PROXY: Ext must be an array reference"; } 
+  };
+  foreach (@Ext) { if ( ! /^(\060.+)$/ ) { push @Errors,"Extension ".Hex($1)." isn't DER encoded"; } }
   my $KeypublicE  = ((( defined  $context{'KeypublicExponent'} && $context{'KeypublicExponent'} =~ /^([\x00-\x7f].+)$/s) ) ? $& : undef);
   my $KeypublicM  = ((( defined  $context{'KeypublicModulus'} && $context{'KeypublicModulus'} =~ /^([\x00-\x7f].+)$/s) ) ? $& : undef);
 
 # Check for unrecognised values for recognised options
-  if ( defined $context{'Type'}       && ! defined $type )     { push @Errors, "PROXY: Unknown proxy type $context{'Type'}. Try Legasy, Limited, Pre-RFC or RFC."; }
+  if ( defined $context{'Type'}       && ! defined $type )     { push @Errors, "PROXY: Unknown proxy type $context{'Type'}. Try Legacy, Limited, Pre-RFC or RFC."; }
   if ( defined $context{'PathLength'} && ! defined $pathlen )  { push @Errors, "PROXY: Invalid Pathlength $context{'PathLength'}. Must be a positive integer."; }
+  if ( defined $context{'Bits'}       && ! defined $bits )     { push @Errors, "PROXY: Key size may only be 512, 1024, 2048 or 4096."; }
   if ( defined $context{'Lifetime'}   && ! defined $lifetime ) { push @Errors, "PROXY: Invalid Lifetime $context{'Lifetime'}. Must be a positive integer."; }
+  if ( defined $context{'Start'}      && ! defined $start )    { push @Errors, "PROXY: Invalid Start $context{'Start'}. Must be a positive integer (seconds since epoch)."; }
   if ( defined $context{'AC'}         && ! defined $AC )       { push @Errors, "PROXY: AC Must be in DER format."; }
 
 # Check for unknown options
-  foreach (keys %context) { if ( ! /^(Quiet|Type|PathLength|Lifetime|AC|Cert|Key|KeypublicExponent|KeypublicModulus)$/ ) { push @Errors, "PROXY: $_ is an invalid option.";}}
+  foreach (keys %context) { if ( ! /^(Quiet|Type|PathLength|Lifetime|AC|Ext|Cert|Key|Start|Bits|KeypublicExponent|KeypublicModulus)$/ ) { push @Errors, "PROXY: $_ is an invalid option.";}}
+
+  if ( defined $start ) { $now = $start;}
 
 # Bail if any recognised options are invalid
   if ( @Errors > 0 ) { return { Errors => \@Errors} ; }
 
 # Warn if there is something queer
-  if ( ! defined $type )     { $type     = "Legasy";   push @Warnings, "PROXY: Undefined proxy type. Defaulting to Legasy."; }
+  if ( ! defined $type )     { $type     = "Legacy";   push @Warnings, "PROXY: Undefined proxy type. Defaulting to Legacy."; }
   if ( ! defined $lifetime ) { $lifetime = 43200;      push @Warnings, "PROXY: Undefined lifetime. Defaulting to $lifetime seconds."; }
+  if ( ! defined $bits )     { $bits = 512;            push @Warnings, "PROXY: Undefined key size. Defaulting to $bits bits."; }
   if ( $lifetime > 86400 )   {                         push @Warnings, "PROXY: Requested lifetime exceeds 24 hours."; }
   if ( ( $lifetime ) > ( $CI{'End'} - $now ) )       { push @Warnings, "PROXY: Requested lifetime exceeds lifetime of issuer."; }
   if ( ( $CI{'End'} - $now ) < 604800 )              { push @Warnings, "PROXY: Issuer certificate will expire in less than 1 week."; }
-  if ( $type eq "Legasy" && defined $pathlen )       { push @Warnings, "PROXY: Legasy Proxy may not a proxy pathlength."; }
+  if ( $type =~ "Legacy" && defined $pathlen )  { push @Warnings, "PROXY: Legacy Proxy may not a proxy pathlength."; }
 
 ###################################################################
 # Do not edit below these lines (unless there's a bug of course!) #
 ###################################################################
 
 #Get times  Now and Now + $lifetime (12 hours)
-  my @NOW=gmtime($now);
-  my @FUT=gmtime($now+$lifetime);
+  my @NOW=gmtime($now );
+  my @FUT=gmtime($now + $lifetime );
 
 # UTCTIME (so two digit years, OK for the next 40 or so years!)
   my $beforeDate=sprintf("%02i%02i%02i%02i%02i%02iZ",($NOW[5] % 100),($NOW[4]+1),$NOW[3],$NOW[2],$NOW[1],$NOW[0]);
@@ -92,7 +106,7 @@ sub Create {
   if ( ! defined($KeypublicE) || ! defined($KeypublicM) ) {
 
 # Generate Key Pair
-    my $keyref = VOMS::Lite::RSAKey::Create( { Bits => 512, Verbose => (defined $context{'Quiet'})?undef:"y" } );
+    my $keyref = VOMS::Lite::RSAKey::Create( { Bits => $bits, Verbose => (defined $context{'Quiet'})?undef:"y" } );
     if ( ! defined $keyref ) { return { Errors => [ "PROXY: Key Generation Failure" ] } ; }
     my %key = %{ $keyref };
     if ( defined $key{'Errors'} ) { return { Errors => [ "PROXY: Error in Key Generation ".$key{'Errors'} ] } ; }
@@ -125,9 +139,9 @@ sub Create {
 #Certificate Version (x509 v3)
   my $X509version = "a003020102";
 
-#Serial Number (different algorithm for (Pre)?RFC and Legasy Globus
+#Serial Number (different algorithm for (Pre)?RFC and Legacy Globus
   my $SN=DecToHex( ((($CI{End}-$now) & hex("00ffffff"))<<8 ) + int(rand 256));
-  my $X509serial=($type eq "Legasy")?Hex($CI{X509serial}):ASN1Wrap("02",$SN);
+  my $X509serial=($type eq "Legacy")?Hex($CI{X509serial}):ASN1Wrap("02",$SN);
 
 #Use MD5 and RSA for now
   my $X509signature="300d06092a864886f70d0101040500"; #SEQ(OID:md5WithRSAEncryption NULL)
@@ -141,7 +155,7 @@ sub Create {
 #Subject
   my $proxystr = Hex("proxy");
   $proxystr    = Hex("limited proxy") if ($type eq "Limited");
-  $proxystr    = Hex(hex($SN)) if ($type ne "Legasy" && $type ne "Limited");
+  $proxystr    = Hex(hex($SN)) if ($type ne "Legacy" && $type ne "Limited");
   my $PROXYNAME=ASN1Wrap("31",ASN1Wrap("30","0603550403".ASN1Wrap("13",$proxystr)));  #SET{SEQ{OID:CN CN}}
   my $X509subject=ASN1Wrap("30",Hex(scalar ASN1Unwrap($CI{X509subject})).$PROXYNAME);
 
@@ -166,7 +180,7 @@ sub Create {
 #  $VOMS=ASN1Wrap("30","060a2b06010401be45646405"."".ASN1Wrap("04",Hex($AC))) if ( defined $AC );
   $VOMS=ASN1Wrap("30","060a2b06010401be45646405"."".ASN1Wrap("04",ASN1Wrap("30",ASN1Wrap("30",Hex($AC))))) if ( defined $AC );
 
-  my $X509extensions=ASN1Wrap("a3",ASN1Wrap("30",$keyusage.$ProxyInfo.$VOMS));
+  my $X509extensions=ASN1Wrap("a3",ASN1Wrap("30",$keyusage.$ProxyInfo.$VOMS.Hex(join('',@Ext))));
 
 #The whole chunck of certificate to be signed
   my $TBSCertificate=ASN1Wrap("30",$X509version.$X509serial.$X509signature.$X509issuer.$X509Validity.
@@ -221,7 +235,7 @@ information required to make the Proxy Certificate.
   'Lifetime' the integer lifetime of the credential to be issued in seconds
   'PathLength' restricts the proxy by embedding policy to not allow more than PathLength proxy certificate in any chain derived from the credential produced (RFC and Pre-RFC only).
   'AC' A DER encoded VOMS credential
-  'Type' the type of proxy to create (can be any of Legasy, Limited, Pre-RFC, RFC. The default is Legasy.)
+  'Type' the type of proxy to create (can be any of Legacy, Limited, Pre-RFC, RFC. The default is Legacy.)
 
 The return value is a hash containing the PROXY Certificate and Key strings in DER format (ProxyCert and ProxyKey),
 a reference to an array of warnings (an Proxy will still be created if warnings are present),

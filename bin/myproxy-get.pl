@@ -40,6 +40,7 @@ if ( ! defined $Input{"Password"} ) {
   $dummy=Term::ReadKey::ReadMode('normal');
   chomp $passwd;
   $Input{"Password"}=$passwd;
+  print "\n";
 }
 
 my %Output = %{ VOMS::Lite::MyProxy::Get(\%Input) };
@@ -52,6 +53,8 @@ if ( ! defined $Output{CertChain} || ! defined $Output{Key} ) {
 }
 
 foreach ( @{ $Output{Warnings} } ) { print "Warning: $_\n"; }
+
+print "Retrieved\n";
 
 writeCertKey($outfile, $cert, $Output{'Key'}, @{ $Output{CertChain} } );
 
