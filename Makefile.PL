@@ -15,6 +15,7 @@ my $RequiredModules={
 #                      Digest::MD4     => 0,
                       Digest::MD2     => 0,
 #                      Crypt::Primes    => 0,
+                      Crypt::CBC      => 0,
                       Crypt::DES_EDE3 => 0,
 #                      Crypt::RSA::Key => 0,  #No longer needed
                       Math::BigInt    => 0,
@@ -100,6 +101,7 @@ WriteMakefile(
     NAME              => 'VOMS::Lite',
     VERSION_FROM      => 'lib/VOMS/Lite.pm', # finds $VERSION
     EXE_FILES         => [ qw( bin/extractVOMS.pl 
+                               bin/examineAC.pl
                                bin/cert-init.pl
                                bin/cert-req.pl
                                bin/verifycert.pl 
@@ -109,6 +111,7 @@ WriteMakefile(
                                bin/myproxy-get.pl
                                bin/myproxy-init.pl
                                sbin/voms-server.pl
+                               sbin/vomsserver.pl
                               ) ],
     PREREQ_PM         => $RequiredModules,
     ($] >= 5.005 ?     ## Add these new keywords supported since 5.005

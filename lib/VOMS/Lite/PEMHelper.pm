@@ -11,7 +11,7 @@ use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 %EXPORT_TAGS = ( );
 @EXPORT_OK = qw( encodeCert writeAC encodeAC readAC readCert decodeCert writeKey writeCert writeCertKey readPrivateKey );
 @EXPORT = ( );
-$VERSION = '0.10';
+$VERSION = '0.11';
 
 ################################################################
 
@@ -59,10 +59,10 @@ sub readCert {  #Returns BERs with CERTs in them
   open(CERT,"<$file") || die "Can't access Public Key file: '$file'";
   while (<CERT>) {
     my $line=$_;
-    if ( $line =~ /^-----BEGIN $type-----$/ ) {$read=1; $Certnum++; next;}
-    if ( $line =~ /^-----END $type-----$/ ) {$read=0;  wantarray ? next : last; }
+    if ( $line =~ /^-----BEGIN $type-----\r?$/ ) {$read=1; $Certnum++; next;}
+    if ( $line =~ /^-----END $type-----\r?$/ ) {$read=0;  wantarray ? next : last; }
     if ( $read==1 ) {
-      if ( $line =~ /^([A-Za-z0-9+\/=]+)$/ ) {$myCertData[$Certnum].=$1;}
+      if ( $line =~ /^([A-Za-z0-9+\/=]+)\r?$/ ) {$myCertData[$Certnum].=$1;}
     }
   }
   close(CERT);

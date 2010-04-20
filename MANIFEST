@@ -16,6 +16,7 @@ lib/VOMS/Lite/Attribs/DBHelper.pm
 lib/VOMS/Lite/Audit.pm
 lib/VOMS/Lite/ASN1Helper.pm
 lib/VOMS/Lite/AC.pm
+lib/VOMS/Lite/Base64.pm
 lib/VOMS/Lite/CertKeyHelper.pm
 lib/VOMS/Lite/KEY.pm
 lib/VOMS/Lite/MyProxy.pm
@@ -33,5 +34,6 @@ MANIFEST
 README
 t/VOMS-Lite.t
 sbin/voms-server.pl
+sbin/vomsserver.pl
 TODO
 META.yml                                 Module meta-data (added by MakeMaker)

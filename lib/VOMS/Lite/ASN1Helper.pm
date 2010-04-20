@@ -11,7 +11,7 @@ use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 %EXPORT_TAGS = ( );
 @EXPORT_OK = qw( Hex DecToHex ASN1BitStr ASN1Wrap ASN1UnwrapHex ASNLenStr ASN1Index ASN1Unwrap ASN1OIDtoOID OIDtoASN1OID);
 @EXPORT = (  );
-$VERSION = '0.10';
+$VERSION = '0.11';
 
 ##################################################
 
@@ -29,6 +29,7 @@ sub DecToHex { #Converts an 'integer' to a padded string of hex values
   return undef if ( ! defined $data );
   return "NaN" if ( $data !~ /^-?[0-9]+$/ );
   my $num=Math::BigInt->new("$data");
+  $num->binc() if ( $data =~ /^-/ );
   my $str=$num->as_hex();
   $str =~ s/^-?0x//;           # strip 0x and negative sign
   $str =~ s/^.(..)*$/0$&/;     # even up str

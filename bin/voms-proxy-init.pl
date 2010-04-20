@@ -4,8 +4,8 @@ use VOMS::Lite::VOMS;
 use VOMS::Lite::PEMHelper qw(readCert readAC readPrivateKey writeCertKey decodeCert);
 use VOMS::Lite::ASN1Helper qw(ASN1Wrap ASN1Unwrap DecToHex Hex ASN1BitStr);
 use VOMS::Lite::PROXY;
-use LWP::UserAgent;
-use HTTP::Request;
+#use LWP::UserAgent; #Now only loaded if required
+#use HTTP::Request;
 
 my $name=$0;
 my $lname=length($name);
@@ -79,6 +79,12 @@ EOF
     die "$& requires an argument" if ( ! defined $lifetime );
     die "$& requires a positive numeric integer argument." if ( $lifetime !~ /^[0-9]+$/ );
   }
+  elsif ( /^--?b(?:its)?$/ ) {
+    my $bits=shift @ARGV;
+    die "$& requires an argument" if ( ! defined $bits );
+    die "$& must be a positive integer." if ( $bits !~ /^[0-9]+$/ );
+    $Input{'Bits'}=$bits;
+  }
   elsif ( /^vomss:\/\/.*$/ ) {
     push @VOMSURI,$&;
   }
@@ -109,6 +115,8 @@ foreach (@VOMSURI) {
     if ( defined $URI{$1} ) { push @{ $URI{$1}},$2; }
     else { $URI{$1}=[$2]; push @URI,"$1"; }
   } elsif ( m|https://[^:]+(?::[0-9]{1,5})?/.+| ) {
+    eval "use HTTP::Request";  if ($@) { die "HTTP::Request is required for https style URIs"; }
+    eval "use LWP::UserAgent"; if ($@) { die "LWP::UserAgent is required for https style URIs"; }
     push @URI,$_;
   }
 }
@@ -129,6 +137,12 @@ foreach my $URI (@URI) {
     $AC.=${ $ref }{'AC'}."\n";
   }
   elsif ( m|https://[^:]+(?::[0-9]{1,5})?/.+| ) {
+
+   # eval test 
+   # use LWP::UserAgent;
+   # use HTTP::Request;
+
+
     my $req      = HTTP::Request->new( GET => $URI, HTTP::Headers->new('Accept' => "text/plain"));
     my $agent    = LWP::UserAgent->new;
     my $response = $agent->request( $req );

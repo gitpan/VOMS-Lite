@@ -60,7 +60,7 @@ my @Errors        = @{ $Chain{Errors} };
 my $Err           = 0;
 my $Trust         = 0;
 my $comltstr;
-my $comlifetime   = @LifeTime[0];
+my $comlifetime   = $LifeTime[0];
 
 while ( $#returnedCerts >= 0 ) {
   my $timeleft = shift @LifeTime;

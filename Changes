@@ -125,3 +125,17 @@ Revision history for Perl extension VOMS::Lite.
             encoding and multi byte length encoding now behaves correctly
         - RSAkey now searches for character device at $DefaultRandom
         - Removed Regexp dependency from AC::Create
+
+0.11 Tue Apr 20 04:49:00 2010
+        - voms-proxy-init.pl now only loads HTTP::Request and LWP::UserAgent if required
+        - RSAKey::Create Now respects the Quiet option
+            allowing primality searching/testing progress to be shown
+        - Added bin/examineAC.pl to EXE_FILES so that it gets installed!
+        - Fixed use of Lifetime array in bin/verifycert.pl
+        - Fixed Bug for negative integer encoding ASN1Helper::DecToHex
+        - Fixed bug introduced in "VOMS improved Base64 handling"
+            Base64 now has own .pm file
+        - Many enhancements to VOMS::Lite::VOMS
+        - Experimental VOMS::Server - no docs as yet
+        - Experimental vomsserver.pl, ditto
+        - AC::Create now includes Issuing Certificate in extension.

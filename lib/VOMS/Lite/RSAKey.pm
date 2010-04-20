@@ -9,7 +9,7 @@ require Exporter;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 @ISA = qw(Exporter);
 
-$VERSION = '0.10';
+$VERSION = '0.11';
 
 my $DefaultRandom=undef;
 my ($CryptCtx,$Generator);
@@ -43,7 +43,7 @@ else { # If no /dev/random perhaps we are in win32
     }
     $DefaultRandom=\\&WinRandom;
   ';
-  if ( $@ ) { die "No random source at either $urdev vi the filesystem or CryptGenRandom via WIN32::API";}
+  if ( $@ ) { die "No random source at either $urdev via the filesystem or CryptGenRandom via WIN32::API";}
 }
 
 sub Random {
@@ -1399,6 +1399,7 @@ OUTER:  while (1) {
     }
     last OUTER;
   }
+  print "\n" if ( defined $input{'Verbose'} );
   return \%input;
 }
 
@@ -1534,18 +1535,14 @@ sub Create {
 
   while ( 1 ) {
     $x=Random( { RandomFile => $input{'RandomFile'} , Bits => $Nbitp , Parity => 'Odd' } );
-#    if (defined $input{'Verbose'} && $input{'Verbose'} =~ /^y/i) {$x=${Finder({Start=>$x,Verbose=>'y'})}{'Candidate'};} 
-#    else { 
-$x=${ Finder( { Start=>$x }) }{'Candidate'}; 
-#}
+    if (defined $input{'Verbose'} && $input{'Verbose'} =~ /^y/i) {$x=${Finder({Start=>$x,Verbose=>'y'})}{'Candidate'};} 
+    else { $x=${ Finder( { Start=>$x }) }{'Candidate'}; }
 #find range for second number
     my $minq=Math::BigInt->new(2)->bpow(($Nbits-1))->bdiv($x);
     my $maxq=Math::BigInt->new(2)->bpow(($Nbits))->bdec()->bdiv($x);
     $y=Random( { RandomFile => ${$ref}{'RandomFile'} , Lower => $minq , Upper => $maxq , Parity => 'Odd' } );
-#    if (defined $input{'Verbose'} && $input{'Verbose'} =~ /^y/i) {$y=${Finder({Start=>$y,Verbose=>'y'})}{'Candidate'};} 
-#    else { 
-    $y=${ Finder( { Start=>$y }) }{'Candidate'}; 
-#}
+    if (defined $input{'Verbose'} && $input{'Verbose'} =~ /^y/i) {$y=${Finder({Start=>$y,Verbose=>'y'})}{'Candidate'};} 
+    else { $y=${ Finder( { Start=>$y }) }{'Candidate'}; }
 
     $n=$x->copy()->bmul($y);
     $e=65537;

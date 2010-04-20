@@ -14,7 +14,7 @@ use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 %EXPORT_TAGS = ( );
 @EXPORT_OK = qw(buildchain digestSign OIDtoDNattrib DNattribToOID);
 @EXPORT = ( );
-$VERSION = '0.10';
+$VERSION = '0.11';
 ##################################################
 
 # Define some common OIDs used in Distunguished names NB we're using UID and Email not UserID and emailAddress
@@ -203,7 +203,11 @@ sub buildchain {
     opendir(GRIDSECURITYDIR,$dir);
     push @cas, grep(/\.[0-9]+$/, readdir(GRIDSECURITYDIR));
     closedir(GRIDSECURITYDIR);
-    foreach (@cas) { $cert{$_}=""; $dir{$_}=$dir; }
+    foreach (@cas) { 
+      $hash{$_}="$_"; 
+      $cert{$_}=""; 
+      $dir{$_}=$dir;
+    }
   }
 
 #Load locally supplied CAcert info and peer supplied CAcert info
@@ -229,7 +233,10 @@ sub buildchain {
   my $self=0;
   for(;;) {
     $found="no";
-    foreach my $file ( grep(/^$IHash[-1].[0-9]+$/, keys(%cert) ) ) {
+    my @a;
+    foreach (keys(%cert)) { if ($_ =~ /^$IHash[-1].[0-9]+$/ ) { push @a, $_;} }
+    my @b=sort(@a);
+    foreach my $file ( @b ) {
       if ( $cert{$file} eq "" && defined $dir{$file} ) { # Load in CA certificate as required
         my $certder     = readCert("$dir{$file}/$file");
         my $CertInfoRef = VOMS::Lite::X509::Examine($certder,$CertHashTemplate);
@@ -246,7 +253,7 @@ sub buildchain {
 
       if($IDNs[-1] eq $dn{$file} && ( ! defined $AKID[-1] || $AKID[-1] eq $skid{$file} ) ) { #Issuer names match and Key ID's match 
         $found="yes";
-        if ( $DNs[-1] eq $IDNs[-1] && ( ! defiend $AKID[-1] || $SKID[-1] eq $AKID[-1] )) { #Check last cert not self-signed
+        if ( $DNs[-1] eq $IDNs[-1] && ( ! defined $AKID[-1] || $SKID[-1] eq $AKID[-1] )) { #Check last cert not self-signed
           $self=1; 
           $Trust[-1]=1; 
           last; 

@@ -15,7 +15,7 @@ require Exporter;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 @ISA = qw(Exporter);
 
-$VERSION = '0.10';
+$VERSION = '0.11';
 
 #############################################
 sub Examine {
@@ -24,7 +24,6 @@ sub Examine {
   my %Values=%$dataref;
   my @ASN1Index=ASN1Index($decoded);
   my @Values;
-
   return ( {Errors=>"Unable to parse attribute certificate"} ) if (@ASN1Index==0);
 
   my ($index,$ignoreuntil)=(0,0);
@@ -76,7 +75,6 @@ sub Examine {
     }
 # Extract the main components of the Attribute Certificate
 
-
 #Standard
     if (defined $Values{TBSAC})           {$LocalValues{TBSAC}=$TBSAC;}
     if (defined $Values{ACversion})       {$LocalValues{ACversion}=$ACversion;}
@@ -89,7 +87,6 @@ sub Examine {
     if (defined $Values{ACExtensions})    {$LocalValues{ACExtensions}=$ACExtensions;}
     if (defined $Values{ACSignatureType}) {$LocalValues{ACSignatureType}=$ACSignatureType;}
     if (defined $Values{ACSignature})     {$LocalValues{ACSignature}=$ACSignature;}
-
 
     if ($ACExtensions ne "" ) { 
       my @ACExtensionIndex=ASN1Index($ACExtensions);
@@ -419,7 +416,8 @@ sub Create {
                                                        "0101ff".          # Critical
                                                        ASN1Wrap("04",ASN1Wrap("30",$ACTargets)));}
   #Issuer Certs
-  my $IssuerCerts="";
+#  my $IssuerCerts="";
+  my $IssuerCerts=ASN1Wrap("30","060a2b06010401be4564640a".ASN1Wrap("04",ASN1Wrap("30",ASN1Wrap("30",Hex($context{'VOMSCert'})))));
   #NoRevocation
   my $NoRevAvail = "30090603551d3804020500";   # OID 2.5.29.56 + contents=Null
   #Issuer Unique ID
