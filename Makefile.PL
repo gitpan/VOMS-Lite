@@ -106,6 +106,7 @@ WriteMakefile(
                                bin/cert-req.pl
                                bin/verifycert.pl 
                                bin/voms-proxy-init.pl 
+                               bin/voms-proxy-list.pl
                                bin/proxy-init.pl 
                                bin/voms-ac-issue.pl
                                bin/myproxy-get.pl

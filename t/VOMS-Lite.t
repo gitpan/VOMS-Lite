@@ -39,7 +39,13 @@ my %CA = %{ $refCA };
 
 
 #----------------3
-if (defined $CA{Cert} &&  defined $CA{Key} && ! defined $CA{Errors} ) { ok(1); } else { print STDERR "#Not Able to create a CA certificate\n"; ok(0); }
+if (defined $CA{Cert} &&  defined $CA{Key} && ! defined $CA{Errors} ) { ok(1); } 
+else { 
+  ok(0);
+  print STDERR "#Not Able to create a CA certificate\n";
+  if ( defined $CA{Errors} )   { print STDERR "ERROR: ".join("\nERROR: ",@{ $CA{Errors} })."\n"; }
+  if ( defined $CA{Warnings} ) { print STDERR "WARN: ".join("\nWARN: ",@{ $CA{Warnings} })."\n"; }
+}
 
 
 #----------------4
@@ -69,7 +75,13 @@ my %host = %{ VOMS::Lite::X509::Create( { Serial=>1,
                                             Bits=>512,
                                   subjectAltName=>["dNSName=$host"],
                                         Lifetime=>86400 } ) };
-if (defined $host{Cert} &&  defined $host{Key} && ! defined $host{Errors} ) { ok(1); } else { ok(0); print STDERR "Not Able to create a host certificate\n"; }
+if (defined $host{Cert} &&  defined $host{Key} && ! defined $host{Errors} ) { ok(1); } 
+else { 
+  ok(0); 
+  print STDERR "Not Able to create a host certificate\n".@{ $host{Errors} }; 
+  if ( defined $host{Errors} )   { print STDERR "ERROR: ".join("\nERROR: ",@{ $host{Errors} })."\n"; }
+  if ( defined $host{Warnings} ) { print STDERR "WARN: ".join("\nWARN: ",@{ $host{Warnings} })."\n"; }
+}
 
 
 #----------------8
@@ -91,7 +103,12 @@ my %user = %{ VOMS::Lite::X509::Create( { Serial=>2,
                                             Bits=>512,
                                   subjectAltName=>["rfc822Name=root\@$host"],
                                         Lifetime=>86400 } ) };
-if (defined $user{Cert} &&  defined $user{Key} && ! defined $user{Errors} ) { ok(1); } else { ok(0); print STDERR "Not Able to create a user certificate\n"; }
+if (defined $user{Cert} &&  defined $user{Key} && ! defined $user{Errors} ) { ok(1); } 
+else { 
+  ok(0); print STDERR "Not Able to create a user certificate\n"; 
+  if ( defined $user{Errors} )   { print STDERR "ERROR: ".join("\nERROR: ",@{ $user{Errors} })."\n"; }
+  if ( defined $user{Warnings} ) { print STDERR "WARN: ".join("\nWARN: ",@{ $user{Warnings} })."\n"; }
+}
 
 
 #----------------11
@@ -113,7 +130,13 @@ my %proxy = %{ VOMS::Lite::PROXY::Create( { Cert=>$user{'Cert'},
                                              Key=>$user{'Key'},
                                             Type=>"Legacy",
                                         Lifetime=>36000 } ) };
-if (defined $proxy{ProxyCert} &&  defined $proxy{ProxyKey} && ! defined $proxy{Errors} ) { ok(1); } else { ok(0); print STDERR "Not Able to create a proxy certificate\n"; }
+if (defined $proxy{ProxyCert} &&  defined $proxy{ProxyKey} && ! defined $proxy{Errors} ) { ok(1); } 
+else { 
+  ok(0); 
+  print STDERR "Not Able to create a proxy certificate\n"; 
+  if ( defined $proxy{Errors} )   { print STDERR "ERROR: ".join("\nERROR: ",@{ $proxy{Errors} })."\n"; }
+  if ( defined $proxy{Warnings} ) { print STDERR "WARN: ".join("\nWARN: ",@{ $proxy{Warnings} })."\n"; }
+}
 
 
 #----------------15

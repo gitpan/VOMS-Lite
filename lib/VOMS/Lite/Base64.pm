@@ -3,7 +3,7 @@ package VOMS::Lite::Base64;
 require Exporter;
 use vars qw($VERSION $DEBUG @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 @ISA = qw(Exporter);
-$VERSION = '0.11';
+$VERSION = '0.12';
 
 my %Alphabets = ( VOMS => "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789[]",
                   RFC3548 => "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",
@@ -33,11 +33,13 @@ sub Decode {
   my $pad="=";
 
   my $type;
-  if ( defined $str && ! $Alphebet{$str} ) { $type = 'USER'; }
-  elsif ( $data =~ /[\[\]]/s )             { $type = 'VOMS'; }  
-  elsif ( $data =~ /[_-]/s )               { $type = 'RFC3548URL'; }
-  else                                     { $type = 'RFC3548'; } # Assume Standard Base64 if 
-  if ( $type eq "USER" )                   { $Alphabets{'USER'} = $str; }
+  if ( defined $str && ! defined $Alphabets{$str} )  { $type = 'USER'; }
+  elsif ( defined $str && defined $Alphabets{$str} ) { $type = $str; } 
+#Try to guess
+  elsif ( $data =~ /[\[\]]/s && $data !~ /[+\/_-]/ ) { $type = 'VOMS'; }  
+  elsif ( $data =~ /[_-]/s && $data !~ /[\[\]+\/]/)  { $type = 'RFC3548URL'; }
+  else                                               { $type = 'RFC3548'; } # Assume Standard Base64 if 
+  if ( $type eq "USER" )                             { $Alphabets{'USER'} = $str; }
 
   #strip non-base64 chars
   my $estr;

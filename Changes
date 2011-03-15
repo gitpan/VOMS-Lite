@@ -139,3 +139,14 @@ Revision history for Perl extension VOMS::Lite.
         - Experimental VOMS::Server - no docs as yet
         - Experimental vomsserver.pl, ditto
         - AC::Create now includes Issuing Certificate in extension.
+
+0.12 Tue Mar 15 13:32:15 2011
+        - VOMS.pm read now continues to pull from socket until it has 
+            the expected ammount of data; a timeout also put in place
+          - Insert extra padding in records where CBC::Decrypt chomps 
+              trailing \0's.
+          - Allow 0 lenght padding where record length is a multiple of 8
+          - Added VOMS::List function
+          - Fixed array syntax @Errors[] -> $Errors[]
+        - Fixed Base64 type guessing algorithm
+        - Added more verbose error mesage propagation for make test

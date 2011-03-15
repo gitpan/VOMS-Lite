@@ -12,6 +12,7 @@ bin/proxy-init.pl
 bin/verifycert.pl
 bin/voms-ac-issue.pl
 bin/voms-proxy-init.pl
+bin/voms-proxy-list.pl
 lib/VOMS/Lite/Attribs/DBHelper.pm
 lib/VOMS/Lite/Audit.pm
 lib/VOMS/Lite/ASN1Helper.pm
