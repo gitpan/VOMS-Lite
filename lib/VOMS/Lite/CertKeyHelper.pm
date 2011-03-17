@@ -9,11 +9,12 @@ use VOMS::Lite::X509;
 use Digest::MD5 qw(md5);
 
 require Exporter;
-use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
+use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 @ISA = qw(Exporter);
 %EXPORT_TAGS = ( );
 @EXPORT_OK = qw(buildchain digestSign OIDtoDNattrib DNattribToOID);
 @EXPORT = ( );
+$VERSION = '0.14';
 ##################################################
 
 # Define some common OIDs used in Distunguished names NB we're using UID and Email not UserID and emailAddress

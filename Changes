@@ -158,3 +158,7 @@ Revision history for Perl extension VOMS::Lite.
             Thank you Bart Heupers for the bug report.
         - $VERSION now only exported by in Lite.pm
 
+0.14 Thu Mar 17 10:50:00 2011
+        - PAUSE didn't like me removing $VERSION from library files.
+          - humph! Reverted versioning changes
+          - added a script to keep versions in alignment with Lite.pm

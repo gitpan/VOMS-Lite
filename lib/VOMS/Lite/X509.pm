@@ -11,8 +11,10 @@ use VOMS::Lite::RSAKey;
 use VOMS::Lite::CertKeyHelper;
 
 require Exporter;
-use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
+use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 @ISA = qw(Exporter);
+
+$VERSION = '0.14';
 
 sub Examine {
   my ($decoded,$dataref)=@_;

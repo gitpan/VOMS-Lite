@@ -6,11 +6,12 @@ use warnings;
 use DBI;
 
 require Exporter;
-use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
+use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 @ISA = qw(Exporter);
 %EXPORT_TAGS = ( );
 @EXPORT_OK = qw( GetAttrib );
 @EXPORT = ( );
+$VERSION = '0.14';
 
 ##################################################
 

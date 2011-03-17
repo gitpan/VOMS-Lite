@@ -6,11 +6,12 @@ use MIME::Base64 qw(encode_base64 decode_base64);
 use File::Copy qw(move);
 
 require Exporter;
-use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
+use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 @ISA = qw(Exporter);
 %EXPORT_TAGS = ( );
 @EXPORT_OK = qw( encodeCert writeAC encodeAC readAC readCert decodeCert writeKey writeCert writeCertKey readPrivateKey );
 @EXPORT = ( );
+$VERSION = '0.14';
 
 ################################################################
 

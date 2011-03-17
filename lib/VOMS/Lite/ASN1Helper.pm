@@ -6,11 +6,12 @@ use warnings;
 use Math::BigInt lib => 'GMP';
 
 require Exporter;
-use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
+use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 @ISA = qw(Exporter);
 %EXPORT_TAGS = ( );
 @EXPORT_OK = qw( Hex DecToHex ASN1BitStr ASN1Wrap ASN1UnwrapHex ASNLenStr ASN1Index ASN1Unwrap ASN1OIDtoOID OIDtoASN1OID);
 @EXPORT = (  );
+$VERSION = '0.14';
 
 ##################################################
 

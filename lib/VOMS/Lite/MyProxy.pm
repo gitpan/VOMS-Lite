@@ -6,8 +6,10 @@ use VOMS::Lite::REQ;
 use IO::Socket::SSL;
 
 require Exporter;
-use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
+use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 @ISA = qw(Exporter);
+
+$VERSION = '0.14';
 
 END{
   if ( -e "/tmp/mpcertfile.$<.$$" ) { unlink("/tmp/mpcertfile.$<.$$") };

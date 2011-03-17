@@ -37,4 +37,5 @@ t/VOMS-Lite.t
 sbin/voms-server.pl
 sbin/vomsserver.pl
 TODO
+updateversion.pl
 META.yml                                 Module meta-data (added by MakeMaker)

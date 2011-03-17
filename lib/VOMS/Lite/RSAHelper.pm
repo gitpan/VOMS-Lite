@@ -5,11 +5,12 @@ use strict;
 use Math::BigInt lib => 'GMP';
 
 require Exporter;
-use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
+use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 @ISA = qw(Exporter);
 %EXPORT_TAGS = ( );
 @EXPORT_OK = qw( rsasign rsaencrypt rsaverify rsadecrypt );
 @EXPORT = ( );
+$VERSION = '0.14';
 
 ###############################################
 
