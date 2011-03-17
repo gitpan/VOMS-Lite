@@ -6,12 +6,11 @@ use MIME::Base64 qw(encode_base64 decode_base64);
 use File::Copy qw(move);
 
 require Exporter;
-use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
+use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 @ISA = qw(Exporter);
 %EXPORT_TAGS = ( );
 @EXPORT_OK = qw( encodeCert writeAC encodeAC readAC readCert decodeCert writeKey writeCert writeCertKey readPrivateKey );
 @EXPORT = ( );
-$VERSION = '0.12';
 
 ################################################################
 
@@ -253,7 +252,7 @@ sub readPrivateKey {  #Returns BER with Private key in it
   my $cyphertext=decode_base64($myKeyData);
   return $cyphertext if ( $PEMType ne "ENCRYPTED" ); # Because actually it's not encrypted.
   if ( $PEMEnc ne "DES-EDE3-CBC" ) { die "I don't know how to unencrypt your key\n";}
-  if ( $SALT !~ /^[A-F0-9]{16}$/ ) { die "Bad Initilisation Vector (salt)'; I can't unencrypt your key!\n";}
+  if ( $SALT !~ /^[a-fA-F0-9]{16}$/ ) { die "Bad Initilisation Vector (salt)'; I can't unencrypt your key!\n";}
   if ( $PEMV ne "4" ) { print STDERR "Warning: I was expecting a version 4 PEM encrypted file you gave me a Version $PEMV\nFunny things may happen!\n"; }
 
 

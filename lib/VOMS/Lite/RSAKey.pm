@@ -6,10 +6,8 @@ use Math::BigInt lib => 'GMP';
 use 5.004;
 use strict;
 require Exporter;
-use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
+use vars qw(@ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 @ISA = qw(Exporter);
-
-$VERSION = '0.12';
 
 my $DefaultRandom=undef;
 my ($CryptCtx,$Generator);

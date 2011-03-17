@@ -114,7 +114,6 @@ foreach (@VOMSURI) {
   if ( m|(vomss://[^:]+:[^/]+)(/.+)| ) {
     if ( defined $URI{$1} ) { push @{ $URI{$1}},$2; }
     else { $URI{$1}=[$2]; push @URI,"$1"; }
-print "--- ".$URI{$1}[0]."\n";
   } elsif ( m|https://[^:]+(?::[0-9]{1,5})?/.+| ) {
     eval "use HTTP::Request";  if ($@) { die "HTTP::Request is required for https style URIs"; }
     eval "use LWP::UserAgent"; if ($@) { die "LWP::UserAgent is required for https style URIs"; }

@@ -150,3 +150,11 @@ Revision history for Perl extension VOMS::Lite.
           - Fixed array syntax @Errors[] -> $Errors[]
         - Fixed Base64 type guessing algorithm
         - Added more verbose error mesage propagation for make test
+
+0.13 Thu Mar 17 09:50:00 2011
+        - Removed a debugging print statement in voms-proxy-init.pl
+        - Modified PEMHelper to allow lowercase hex chars in SALT
+          - see https://rt.cpan.org/Public/Bug/Display.html?id=62049
+            Thank you Bart Heupers for the bug report.
+        - $VERSION now only exported by in Lite.pm
+

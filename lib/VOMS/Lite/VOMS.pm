@@ -15,9 +15,8 @@ use Digest::SHA1 qw(sha1_hex sha1);
 use Crypt::CBC;
 
 require Exporter;
-use vars qw($VERSION $DEBUG @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
+use vars qw($DEBUG @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 @ISA = qw(Exporter);
-$VERSION = '0.12';
 
 BEGIN {
   $DEBUG='no';
