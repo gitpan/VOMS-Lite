@@ -17,7 +17,7 @@ use Crypt::CBC;
 require Exporter;
 use vars qw($VERSION $DEBUG @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 @ISA = qw(Exporter);
-$VERSION = '0.14';
+$VERSION = '0.15';
 
 BEGIN {
   $DEBUG='no';
@@ -506,7 +506,9 @@ sub Server {
   }
   $Data.="</vomsans>";
 
-  Write($sock,Bin(&Encrypt(Bin(recordLayer("17",Hex($Data))),$KEYS{'SMAC'},$pad1sha,$pad2sha,$Sseq,$Scipher)));
+# predata to stop TLS CBC IV attack
+  my $predata      = Bin(&Encrypt(Bin("1703000000"),$KEYS{'SMAC'},$pad1sha,$pad2sha,$Sseq,$Scipher)); 
+  Write($sock,$predata.Bin(&Encrypt(Bin(recordLayer("17",Hex($Data))),$KEYS{'SMAC'},$pad1sha,$pad2sha,$Sseq,$Scipher)));
 
   return { Warnings => \@warning };
 }
@@ -798,10 +800,14 @@ sub Get {
 
 ######################### 
 # Send no delegation byte
+# predata and postdata to stop TLS CBC IV attack
+  my $predata      = Bin(&Encrypt(Bin("1703000000"),$KEYS{'CMAC'},$pad1sha,$pad2sha,$Cseq,$Ccipher));
   my $msg='0';
   my $emesg        = &Encrypt(Bin(recordLayer("17",Hex($msg))),$KEYS{'CMAC'},$pad1sha,$pad2sha,$Cseq,$Ccipher);
   $senddata        = Bin($emesg);
-  Write($sock,$senddata);
+  my $postdata     = Bin(&Encrypt(Bin("1703000000"),$KEYS{'CMAC'},$pad1sha,$pad2sha,$Cseq,$Ccipher));
+
+  Write($sock,$predata.$senddata.$postdata);
 
 ############## 
 # Send request
@@ -1128,10 +1134,14 @@ sub List {
 
 ######################### 
 # Send no delegation byte
+# predata and postdata to stop TLS CBC IV attack
+  my $predata      = Bin(&Encrypt(Bin("1703000000"),$KEYS{'CMAC'},$pad1sha,$pad2sha,$Cseq,$Ccipher));
   my $msg='0';
   my $emesg        = &Encrypt(Bin(recordLayer("17",Hex($msg))),$KEYS{'CMAC'},$pad1sha,$pad2sha,$Cseq,$Ccipher);
   $senddata        = Bin($emesg);
-  Write($sock,$senddata);
+  my $postdata     = Bin(&Encrypt(Bin("1703000000"),$KEYS{'CMAC'},$pad1sha,$pad2sha,$Cseq,$Ccipher));
+
+  Write($sock,$predata.$senddata.$postdata);
 
 ############## 
 # Send request
@@ -1209,36 +1219,45 @@ sub Decrypt { #this routine modifies $_[4],[5] Decrypt($rec,$MACSecret,$pad1sha,
   my ($rec,$MACSecret,$pad1sha,$pad2sha)=@_;
 #unpack
   debug("Decrypting",length($rec)." bytes"); debug("Encrypted data",$rec,1); debug("MAC Secret",$MACSecret,1); debug("Sequence",$_[4]);
-  my $type=substr($rec,0,1,'');
-  my $version=substr($rec,0,2,'');
-  my $recordlength=substr($rec,0,2,'');
-#decrypt
-  my $data=$_[5]->decrypt($rec);
-#Update
-  my $iv=substr($rec,-8,8);
-  $_[5]->set_initialization_vector($iv);
-#unpad -- ought to be this but have seen examples otherwise...
-#... 0707070707070707, 06060606060606, 050505050505, 0404040404, 03030303, 020202, 0101 -- SSL
-# 01, 0202, 030303,... -- (PKCS#5, rfc2898)
-# openssl has option for random padding / no padding - have seen VOMS server use both :-S
-# spec says we can have up to 255 bytes of padding if these are random we'd have to assume padding is always present
-# our hands are tied because these are not selfconsistant -- so:
-# If padlen byte is 0x01 - 0x08 treat as random/SSL padding, otherwise assume SSL padding and rely upon xml message always ending in '>' i.e. 0x3e and not 0x01-0x08  
-  my $padchar=substr($data,-1,1,'');
-  my $padlen=ord($padchar);
-  my $pad;
-  if ( ( $padlen <= 8 && $padlen > 0 ) or ( $padlen > 8 && $data =~ /${padchar}{$padlen}$/s ) ) { 
-    $pad=substr($data,(0-$padlen),$padlen,''); 
-    debug("Depadded","$padlen (+1) bytes"); debug("Padding",$pad,1);
+
+  my $data="";
+
+#Loop over all Records in $rec Allow for openssl's defence against TLS CBC IV attack
+  while ($rec) {
+    my $type=substr($rec,0,1,''); my $version=substr($rec,0,2,''); my $recordlength=substr($rec,0,2,'');
+    debug("Message type",$type); debug("version",$version); debug("record length",$recordlength);
+    my @rl = $recordlength =~ /(.)(.)/; my $rl=ord($rl[0])*256+ord($rl[1]);
+    debug("RL Decimal",$rl);
+    my $minirec=substr($rec,0,$rl,'');
+  #decrypt
+    my $minidata=$_[5]->decrypt($minirec);
+  #Update
+    my $iv=substr($minirec,-8,8);
+    $_[5]->set_initialization_vector($iv);
+  #unpad -- ought to be this but have seen examples otherwise...
+  #... 0707070707070707, 06060606060606, 050505050505, 0404040404, 03030303, 020202, 0101 -- SSL
+  # 01, 0202, 030303,... -- (PKCS#5, rfc2898)
+  # openssl has option for random padding / no padding - have seen VOMS server use both :-S
+  # spec says we can have up to 255 bytes of padding if these are random we'd have to assume padding is always present
+  # our hands are tied because these are not selfconsistant -- so:
+  # If padlen byte is 0x01 - 0x08 treat as random/SSL padding, otherwise assume SSL padding and rely upon xml message always ending in '>' i.e. 0x3e and not 0x01-0x08  
+    my $padchar=substr($minidata,-1,1,'');
+    my $padlen=ord($padchar);
+    my $pad;
+    if ( ( $padlen <= 8 && $padlen > 0 ) or ( $padlen > 8 && $minidata =~ /${padchar}{$padlen}$/s ) ) { 
+      $pad=substr($minidata,(0-$padlen),$padlen,''); 
+      debug("Depadded","$padlen (+1) bytes"); debug("Padding",$pad,1);
+    }
+    else { $minidata.=$padchar; }
+  #get mac
+    my $mac=substr($minidata,-20,20,'');
+  #verify
+    my $len=Bin(sprintf("%04s",DecToHex(length($minidata))));
+    my $seq=Bin(Seq($_[4]++));
+    my $calcmac=sha1($MACSecret.$pad2sha.sha1($MACSecret.$pad1sha.$seq.$type.$len.$minidata));
+    debug("IV",$iv); debug("MAC expected",$mac,1); debug("MAC derived",$calcmac,1); debug("Data",$minidata);
+    $data.=$minidata;
   }
-  else { $data.=$padchar; }
-#get mac
-  my $mac=substr($data,-20,20,'');
-#verify
-  my $len=Bin(sprintf("%04s",DecToHex(length($data))));
-  my $seq=Bin(Seq($_[4]++));
-  my $calcmac=sha1($MACSecret.$pad2sha.sha1($MACSecret.$pad1sha.$seq.$type.$len.$data));
-  debug("IV",$iv); debug("MAC expected",$mac,1); debug("MAC derived",$calcmac,1); debug("Data",$data);
   return ($calcmac eq $mac)?$data:undef;
 }
 

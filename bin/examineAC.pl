@@ -115,7 +115,7 @@ This script was originally designed for VOMS::Lite, as a tool for the UK NGS SAR
 NGS is funded by the UK Research Councils JISC and EPSRC
 
 http://www.mc.manchester.ac.uk/projects/shebangs/
-E<0x0a>now http://www.rcs.manchester.ac.uk/projects/shebangs/
+ now http://www.rcs.manchester.ac.uk/projects/shebangs/
 
 Mailing list, shebangs@listserv.manchester.ac.uk
 

@@ -113,7 +113,7 @@ Creates a 512 bit proxy certificate optionally including a VOMS attribute certif
 This module was originally designed for SHEBANGS, a JISC funded project at The University of
  Manchester.
 http://www.mc.manchester.ac.uk/projects/shebangs/
-E<0x0a>now http://www.rcs.manchester.ac.uk/projects/shebangs/
+ now http://www.rcs.manchester.ac.uk/projects/shebangs/
 
 Mailing list, shebangs@listserv.manchester.ac.uk
 

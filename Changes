@@ -149,7 +149,7 @@ Revision history for Perl extension VOMS::Lite.
           - Added VOMS::List function
           - Fixed array syntax @Errors[] -> $Errors[]
         - Fixed Base64 type guessing algorithm
-        - Added more verbose error mesage propagation for make test
+        - Added more verbose error message propagation for make test
 
 0.13 Thu Mar 17 09:50:00 2011
         - Removed a debugging print statement in voms-proxy-init.pl
@@ -162,3 +162,14 @@ Revision history for Perl extension VOMS::Lite.
         - PAUSE didn't like me removing $VERSION from library files.
           - humph! Reverted versioning changes
           - added a script to keep versions in alignment with Lite.pm
+
+0.15 Thu Feb 14 16:10:00 2012
+        - Problem with build on PPC, tests can't generate a CA certificate
+          - Added more checks in test script
+        - Added extra lurve
+        - VOMS servers updated to EMI release caused VOMS.pm to break
+          - This was due to expecting a single encrypted record from server
+            The server's move to using vanilla OpenSSL based sockets meant
+            that VOMS.pm received a record with zero data before the record with
+            the AC or List result.
+            VOMS.pm can now handle multiple encrypted records per payload.

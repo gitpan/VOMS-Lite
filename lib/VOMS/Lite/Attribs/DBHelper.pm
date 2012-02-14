@@ -11,7 +11,7 @@ use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 %EXPORT_TAGS = ( );
 @EXPORT_OK = qw( GetAttrib );
 @EXPORT = ( );
-$VERSION = '0.14';
+$VERSION = '0.15';
 
 ##################################################
 

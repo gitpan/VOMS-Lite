@@ -39,10 +39,12 @@ my %CA = %{ $refCA };
 
 
 #----------------3
-if (defined $CA{Cert} &&  defined $CA{Key} && ! defined $CA{Errors} ) { ok(1); } 
+if (defined $CA{Cert} && defined $CA{Key} && ! defined $CA{Errors} && $CA{Cert} =~ /^\060/s && $CA{Key} =~ /^\060/s) { ok(1); } 
 else { 
   ok(0);
   print STDERR "#Not Able to create a CA certificate\n";
+  if ($CA{Cert} =~ /^\060/s ) {print STDERR "#CA cert did not begin with 0x30\n"; my $tmp=$CA{Cert}; $tmp =~ s/./sprintf("%X ",ord($&))/seg; print "#$tmp\n";}
+  if ($CA{Key} =~ /^\060/s )  {print STDERR "#CA key did not begin with 0x30\n";  my $tmp=$CA{Key};  $tmp =~ s/./sprintf("%X ",ord($&))/seg; print "#$tmp\n";}
   if ( defined $CA{Errors} )   { print STDERR "ERROR: ".join("\nERROR: ",@{ $CA{Errors} })."\n"; }
   if ( defined $CA{Warnings} ) { print STDERR "WARN: ".join("\nWARN: ",@{ $CA{Warnings} })."\n"; }
 }

@@ -15,7 +15,7 @@ require Exporter;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 @ISA = qw(Exporter);
 
-$VERSION = '0.14';
+$VERSION = '0.15';
 
 #############################################
 sub Examine {
