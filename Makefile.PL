@@ -16,6 +16,7 @@ my $RequiredModules={
                       Digest::MD2     => 0,
 #                      Crypt::Primes    => 0,
                       Crypt::CBC      => 0,
+Crypt::DES => 0,
                       Crypt::DES_EDE3 => 0,
 #                      Crypt::RSA::Key => 0,  #No longer needed
                       Math::BigInt    => 0,

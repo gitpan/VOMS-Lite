@@ -14,7 +14,7 @@ require Exporter;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 @ISA = qw(Exporter);
 
-$VERSION = '0.15';
+$VERSION = '0.16';
 
 sub Examine {
   my ($decoded,$dataref)=@_;
@@ -361,7 +361,8 @@ sub Create {
   if ( defined $context{'CACert'} ) {
     $CertInfoRef = (($context{'CACert'} =~ /^(\060.+)$/s) ? Examine($&, {X509issuer=>"", X509subject=>"", End=>"", subjectKeyIdentifier=>"", X509serial=>"", subjectAltName=>""}) : undef);
     $KeyInfoRef  = (($context{'CAKey'}  =~ /^(\060.+)$/s) ?  VOMS::Lite::KEY::Examine($&, {Keymodulus=>"", KeyprivateExponent=>""}) : undef);
-    if ( defined $CertInfoRef )  { %CI=%$CertInfoRef; } else  { push @Errors, "X509: Unable to parse CA certificate."; }
+    if ( defined $CertInfoRef )  { %CI=%$CertInfoRef; } else  { push @Errors, "X509: Unable to parse CA certificate."; } 
+    if ( defined %CI && $CI{'Errors'} ) { push @Errors, "X509: Unable to parse CA certificate errors: ".join ('; ',@{ $CI{'Errors'}}); } 
     if ( defined $KeyInfoRef )   { %KI=%$KeyInfoRef;  } else  { push @Errors, "X509: Unable to parse CA key."; }    
   }
 
@@ -418,9 +419,11 @@ sub Create {
   if ( defined $context{'subjectAltName'} ) {
     foreach (@{ $context{'subjectAltName'} }) { 
       if    ( /^otherName=/ )                   { push @Errors, "X509: otherName not supported"; } 
-      elsif ( /^rfc822Name=([\x00\x07-\x0f\x11-\x14\x18-\x1b\x20-\x23\x25-\x7d\x7f]*)$/ )
+#      elsif ( /^rfc822Name=([\x00\x07-\x0f\x11-\x14\x18-\x1b\x20-\x23\x25-\x7d\x7f]*)$/ )
+      elsif ( /^rfc822Name=([\x00-\x7f]*)$/ ) #IA5String -- Misconception that DNS is only [a-zA-Z0-9.-]*
                                                 { $SubjectAltName.=ASN1Wrap("81",Hex($1)); }
-      elsif ( /^dNSName=([\x00\x07-\x0f\x11-\x14\x18-\x1b\x20-\x23\x25-\x7d\x7f]*)$/ )
+#      elsif ( /^dNSName=([\x00\x07-\x0f\x11-\x14\x18-\x1b\x20-\x23\x25-\x7d\x7f]*)$/ )
+      elsif ( /^dNSName=([\x00-\x7f]*)$/ ) #IA5String -- Misconception that DNS is only [a-zA-Z0-9.-]*
                                                 { $SubjectAltName.=ASN1Wrap("82",Hex($1)); }
       elsif ( /^x400Address=/ )                 { push @Errors, "X509: x400Address not supported"; } 
       elsif ( /^directoryName=(30[0-9a-f]*)$/ ) { $SubjectAltName.=ASN1Wrap("84",$1); }

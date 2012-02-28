@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               VOMS-Lite
-version:            0.15
+version:            0.16
 abstract:           Perl extension for VOMS Attribute certificate creation
 author:
     - Mike Jones <mike.jones@manchester.ac.uk>
@@ -12,6 +12,7 @@ build_requires:
     ExtUtils::MakeMaker:  0
 requires:
     Crypt::CBC:       0
+    Crypt::DES:       0
     Crypt::DES_EDE3:  0
     Digest::MD2:      0
     Digest::MD5:      0
@@ -28,7 +29,7 @@ no_index:
     directory:
         - t
         - inc
-generated_by:       ExtUtils::MakeMaker version 6.55_02
+generated_by:       ExtUtils::MakeMaker version 6.56
 meta-spec:
     url:      http://module-build.sourceforge.net/META-spec-v1.4.html
     version:  1.4

@@ -13,7 +13,7 @@ require Exporter;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 @ISA = qw(Exporter);
 
-$VERSION = '0.15';
+$VERSION = '0.16';
 
 sub Examine {
   return VOMS::Lite::X509::Examine(@_);

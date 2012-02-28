@@ -16,7 +16,7 @@ BEGIN {
   @EXPORT_OK = qw( Issue );
 }
 
-$VERSION = '0.15';
+$VERSION = '0.16';
 
 ###########################################################
 
@@ -29,7 +29,8 @@ else                                  { $configfile=$ENV{'HOME'}."/.grid-securit
 # Check for config file
 if ( -r $configfile ) {
   if ( (stat($configfile))[2] & 077 ) { 
-    die "VOMS::Lite: Inapropriate permissions on config file: $configfile";
+    if ( $^O =~ /^MSWin/ ) { print STDERR "WARNING: VOMS::Lite: Inapropriate permissions on config file: $configfile\n"; }
+    else                   { die "VOMS::Lite: Inapropriate permissions on config file: $configfile"; }
   }
   if ( open(CONF,"<$configfile") ) {
     while (<CONF>) {

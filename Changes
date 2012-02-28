@@ -173,3 +173,14 @@ Revision history for Perl extension VOMS::Lite.
             that VOMS.pm received a record with zero data before the record with
             the AC or List result.
             VOMS.pm can now handle multiple encrypted records per payload.
+0.16 Tue Feb 28 01:48:00 2012
+        - Removed umask in PEMHelper.pm for Win32.* OS which doesn't do umask
+        - X509::Create
+          - Added check: does parse CA return reference to Error Array?
+          - Change unnecessarily strict check on dNSName and rfc822Name
+        - Added Explicit dependency on Crypt::DES as MacOSX required double complilation
+          - not sure if this will work as cannot install CPAN::Mini::Inject
+        - removed Umask in VOMS::Lite.pm
+        - Added fake DNS entry if Sys::Hostname doesn't provide a FQDN in tests
+        - Added some extra test info
+ 

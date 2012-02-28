@@ -9,6 +9,9 @@ use Cwd;
 use Test;
 use Sys::Hostname;
 my $host = hostname;
+if ( ! defined $host ) { $host = "localhost.localdomain"; }
+$host =~ y/A-Z/a-z/;
+if ( $host !~ /\./ ) { $host.=".localdomain"; }
 
 BEGIN { plan tests => 21 };
 
@@ -170,7 +173,7 @@ my %AC=%$ref;
 
 
 #----------------17
-if (defined $AC{Errors}  ) { ok(0); print STDERR "There were errors producing the AC\n"; } else { ok(1); }
+if (defined $AC{Errors}  ) { ok(0); print STDERR "There were errors producing the AC\n"; foreach ( @{$AC{Errors}} ) { print STDERR "$_\n"; } } else { ok(1); }
 
 
 #----------------18

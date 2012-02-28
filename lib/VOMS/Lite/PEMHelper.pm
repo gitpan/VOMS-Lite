@@ -11,20 +11,20 @@ use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 %EXPORT_TAGS = ( );
 @EXPORT_OK = qw( encodeCert writeAC encodeAC readAC readCert decodeCert writeKey writeCert writeCertKey readPrivateKey );
 @EXPORT = ( );
-$VERSION = '0.15';
+$VERSION = '0.16';
 
 ################################################################
 
 sub writeAC {  #writes a PEM formatted AC 
 # Two arguments (Path to store AC and AC data as a string of chars)
   my ($file,$data)=@_;
-  my $umasksave=umask(0022);
-  if ( umask() != 0022 ) { die "Can't umask 0022\n"; }
+#  my $umasksave=umask(0022);  #ACs are not private key material
+#  if ( umask() != 0022 ) { die "Can't umask 0022\n"; }
   if ( -e $file ) { move($file,"$file.old"); } #move old file away
   open(AC,">$file") || die "Can't create AC file";
   print AC &encodeAC($data);
   close(AC);
-  umask($umasksave);
+#  umask($umasksave);
   return;
 }
 
@@ -111,7 +111,11 @@ sub writeCertKey {
 
 # Place file
   my $umasksave=umask(0077);
-  if ( umask() != 0077 ) { die "Can't umask 0077\n"; }
+  
+  if ( umask() != 0077 ) { 
+    if ( $^O =~ /^MSWin/ ) { print STDERR "WARNING: Can't umask 0077 when writing $file\n"; }
+    else                   { die "Can't umask 0077 when writing $file"; }
+  }
   if ( -e $file ) { move($file,"$file.old"); } #move old file away
 
   open(CERTKEY,">$file") || die "Can't create file to save cert and key to.";
@@ -187,8 +191,12 @@ sub writeKey {
 
 # Place file
   my $umasksave=umask(0077);
-  if ( umask() != 0077 ) { die "Can't umask 0077\n"; }
-  if ( -e $file ) { move($file,"$file.old"); } #move old file away ######FIXME use Tempfile
+
+  if ( umask() != 0077 ) { 
+    if ( $^O =~ /^MSWin/ ) { print STDERR "WARNING: Can't umask 0077 when writing $file\n"; }
+    else                   { die "Can't umask 0077 when writing $file"; }
+  }
+  if ( -e $file ) { move($file,"$file.old"); } #move old file away
 
   open(KEY,">$file") || die "Can't create file to save cert and key to.";
   my $OpenSSLCompat=encode_base64($pri,'');
