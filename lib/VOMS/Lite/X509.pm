@@ -14,14 +14,14 @@ require Exporter;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 @ISA = qw(Exporter);
 
-$VERSION = '0.16';
+$VERSION = '0.17';
 
 sub Examine {
   my ($decoded,$dataref)=@_;
   my %Values=%$dataref;
   my @ASN1Index=ASN1Index($decoded);
 
-  return ( {Errors=>"Unable to parse certificate"} ) if (@ASN1Index==0);
+  return ( {Errors=>["Unable to parse certificate"]} ) if (@ASN1Index==0);
 
   my ($index,$ignoreuntil)=(0,0);
   my ($X509TBSCert,$X509version,$X509serial,$X509signature,$X509issuer,$X509validity,$X509subject,
@@ -362,7 +362,7 @@ sub Create {
     $CertInfoRef = (($context{'CACert'} =~ /^(\060.+)$/s) ? Examine($&, {X509issuer=>"", X509subject=>"", End=>"", subjectKeyIdentifier=>"", X509serial=>"", subjectAltName=>""}) : undef);
     $KeyInfoRef  = (($context{'CAKey'}  =~ /^(\060.+)$/s) ?  VOMS::Lite::KEY::Examine($&, {Keymodulus=>"", KeyprivateExponent=>""}) : undef);
     if ( defined $CertInfoRef )  { %CI=%$CertInfoRef; } else  { push @Errors, "X509: Unable to parse CA certificate."; } 
-    if ( defined %CI && $CI{'Errors'} ) { push @Errors, "X509: Unable to parse CA certificate errors: ".join ('; ',@{ $CI{'Errors'}}); } 
+    if ( %CI && defined $CI{'Errors'} ) { push @Errors, "X509: Unable to parse CA certificate errors: ".join ('; ',@{ $CI{'Errors'}}); } 
     if ( defined $KeyInfoRef )   { %KI=%$KeyInfoRef;  } else  { push @Errors, "X509: Unable to parse CA key."; }    
   }
 

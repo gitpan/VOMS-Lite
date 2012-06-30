@@ -2,14 +2,12 @@
 
 # propagate version numbers
 
+use Cwd;
 BEGIN {
   unshift @INC, "./lib";
+  eval { require VOMS::Lite; };
 }
-
-use VOMS::Lite;
 use File::Find;
-use Cwd;
-
 my $dir=getcwd;
 
 find(\&wanted, "$dir/lib/VOMS/Lite");
@@ -28,3 +26,17 @@ sub wanted {
     rename "$File::Find::name".".new", "$File::Find::name";
   }
 }
+
+print "$dir/example/perl-VOMS-Lite.spec\n";
+open (OLD,"<$dir/example/perl-VOMS-Lite.spec")        or die "couldn't open perl-VOMS-Lite.spec for reading";
+open (NEW,">$dir/example/perl-VOMS-Lite.spec.new")    or die "couldn't open perl-VOMS-Lite.spec.new for reading";
+
+while (<OLD>) {
+  s/^\s*Version:\s*\d[\d.]*\s*$/Version:        $VOMS::Lite::VERSION\n/;
+  print NEW $_;
+}
+close OLD;
+close NEW;
+rename "$dir/example/perl-VOMS-Lite.spec.new", "$dir/example/perl-VOMS-Lite.spec";
+
+

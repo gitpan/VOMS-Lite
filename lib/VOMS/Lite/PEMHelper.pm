@@ -11,7 +11,7 @@ use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 %EXPORT_TAGS = ( );
 @EXPORT_OK = qw( encodeCert writeAC encodeAC readAC readCert decodeCert writeKey writeCert writeCertKey readPrivateKey );
 @EXPORT = ( );
-$VERSION = '0.16';
+$VERSION = '0.17';
 
 ################################################################
 
@@ -245,11 +245,16 @@ sub readPrivateKey {  #Returns BER with Private key in it
   while (<KEY>) {
     my $line=$_;
     if ( $line =~ /^-----BEGIN RSA PRIVATE KEY-----$/ ) {$read=1; next;}
+    if ( $line =~ /^-----BEGIN PRIVATE KEY-----$/ ) {$read=2; next;}
     if ( $line =~ /^-----END RSA PRIVATE KEY-----$/ ) {last;}
+    if ( $line =~ /^-----END PRIVATE KEY-----$/ ) {last;}
     if ( $read==1 ) {
       if ( $line =~ /^Proc-Type: ([0-9]+),(ENCRYPTED)$/ ) {$PEMV=$1; $PEMType=$2}
       elsif ( $line =~ /^DEK-Info: (.*),(.*)$/ ) {$PEMEnc=$1; $SALT=$2}
       elsif ( $line =~ /^([A-Za-z0-9+\/=]+)$/ ) {$myKeyData.=$1;}
+    }
+    if ( $read==2 ) {
+      if ( $line =~ /^([A-Za-z0-9+\/=]+)$/ ) {$myKeyData.=$1;}
     }
   }
   close(KEY);
@@ -259,6 +264,12 @@ sub readPrivateKey {  #Returns BER with Private key in it
 
 # Obtain and check Encryption values
   my $cyphertext=decode_base64($myKeyData);
+
+# If "PRIVATE KEY" but not "RSA PRIVATE KEY" Parse into it
+  if ( $read == 2 ) { # Unencrypted pkcs #8
+    die "I didn't understand the format of your key file:\n$file";
+  }
+
   return $cyphertext if ( $PEMType ne "ENCRYPTED" ); # Because actually it's not encrypted.
   if ( $PEMEnc ne "DES-EDE3-CBC" ) { die "I don't know how to unencrypt your key\n";}
   if ( $SALT !~ /^[a-fA-F0-9]{16}$/ ) { die "Bad Initilisation Vector (salt)'; I can't unencrypt your key!\n";}

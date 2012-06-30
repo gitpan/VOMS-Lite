@@ -2,6 +2,9 @@ Changes
 example/DoIt.pl
 example/PROXYINFO.pl
 example/ProxyChain.pl
+example/perl-VOMS-Lite.spec
+example/unwin32.patch
+example/voms.config
 bin/cert-init.pl
 bin/cert-req.pl
 bin/examineAC.pl
@@ -27,6 +30,7 @@ lib/VOMS/Lite/PROXY.pm
 lib/VOMS/Lite/REQ.pm
 lib/VOMS/Lite/RSAHelper.pm
 lib/VOMS/Lite/RSAKey.pm
+lib/VOMS/Lite/SAMLHelper.pm
 lib/VOMS/Lite/VOMS.pm
 lib/VOMS/Lite/X509.pm
 lib/VOMS/Lite.pm

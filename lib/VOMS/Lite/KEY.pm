@@ -15,6 +15,17 @@ sub Examine {
   my $ignoreuntil=0;
   my ($Keyversion,$Keymodulus,$KeypublicExponent,$KeyprivateExponent,$Keyprime1,$Keyprime2,$Keyexponent1,$Keyexponent2,$Keycoefficient);
 
+
+# Test for PKCS8
+  if ($ASN1Index[2]->[2] == 16) { # This is probably a PKCS8 key
+    my ($CLASS,$CONSTRUCTED,$TAG,$HEADSTART,$HEADLEN,$CHUNKLEN) = @{$ASN1Index[5]};
+    my $newdecoded=substr($decoded,$HEADSTART,($HEADLEN+$CHUNKLEN));
+    if ( $TAG == 4 ) {
+      $decoded=ASN1Unwrap($newdecoded);
+      @ASN1Index=ASN1Index($decoded);
+    }
+  }
+
   shift @ASN1Index; #Key Sequence
   foreach (@ASN1Index) {
     my ($CLASS,$CONSTRUCTED,$TAG,$HEADSTART,$HEADLEN,$CHUNKLEN) = @$_;

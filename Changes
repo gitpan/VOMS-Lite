@@ -183,4 +183,21 @@ Revision history for Perl extension VOMS::Lite.
         - removed Umask in VOMS::Lite.pm
         - Added fake DNS entry if Sys::Hostname doesn't provide a FQDN in tests
         - Added some extra test info
- 
+0.17 Fri Jun 29 13:00:00 2012
+        - Added VOMS::Lite::SAMLHelper library in anticipation of 
+          mainstream SAML VOMS services
+        - Fixed error handling in VOMS::Lite::X509::Examine for 
+          ["Unable to parse certificate"]
+        - Fixed CA certificate check in X509::Examine.  When $CertInfoRef->{'Errors'} 
+          is undefined.
+        - Added ability to parse unencrypted RSA private key in PKCS#8 format.
+          - Changes in VOMS::Lite::PEMHelper::readPrivateKey to also accept
+           "-----BEGIN PRIVATE KEY-----" .. "-----END PRIVATE KEY-----" blocks
+          - Changes in VOMS::Lite::KEY::Examine to locate internal octet string 
+            and re-index to start of key data allowing key to be parsed with the
+            existing algorithm.
+        - Added RPM spec file (originally written by Steve Traylen)
+          - Added unwin32.patch to aid automatic perl library exclusions in rpm
+          - Added voms.config sample as required by spec file
+        - Updated the updateversion.pl script to update version in RPM spec file
+
