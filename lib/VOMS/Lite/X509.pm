@@ -14,7 +14,7 @@ require Exporter;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 @ISA = qw(Exporter);
 
-$VERSION = '0.17';
+$VERSION = '';
 
 sub Examine {
   my ($decoded,$dataref)=@_;
@@ -467,7 +467,7 @@ sub Create {
   if ( @Errors > 0 ) { return { Errors => \@Errors} ; }
 
 # Generate Key Pair
-  my $keyref = VOMS::Lite::RSAKey::Create( { Bits => 512, Verbose => (defined $context{'Quiet'})?undef:"y" } );
+  my $keyref = VOMS::Lite::RSAKey::Create( { Bits => $context{'Bits'}, Verbose => (defined $context{'Quiet'})?undef:"y" } );
   if ( ! defined $keyref ) { return { Errors => [ "X509: Key Generation Failure" ] } ; }
   my %key = %{ $keyref };
   if ( defined $key{'Error'} ) { return { Errors => [ "X509: Error in Key Generation ".$key{'Error'} ] } ; }

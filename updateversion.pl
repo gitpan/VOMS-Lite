@@ -10,6 +10,8 @@ BEGIN {
 use File::Find;
 my $dir=getcwd;
 
+print "About to change Version to $VOMS::Lite::VERSION\n";
+
 find(\&wanted, "$dir/lib/VOMS/Lite");
 
 sub wanted { 
@@ -27,9 +29,9 @@ sub wanted {
   }
 }
 
-print "$dir/example/perl-VOMS-Lite.spec\n";
-open (OLD,"<$dir/example/perl-VOMS-Lite.spec")        or die "couldn't open perl-VOMS-Lite.spec for reading";
-open (NEW,">$dir/example/perl-VOMS-Lite.spec.new")    or die "couldn't open perl-VOMS-Lite.spec.new for reading";
+print "$dir/misc/perl-VOMS-Lite.spec\n";
+open (OLD,"<$dir/misc/perl-VOMS-Lite.spec")        or die "couldn't open perl-VOMS-Lite.spec for reading";
+open (NEW,">$dir/misc/perl-VOMS-Lite.spec.new")    or die "couldn't open perl-VOMS-Lite.spec.new for reading";
 
 while (<OLD>) {
   s/^\s*Version:\s*\d[\d.]*\s*$/Version:        $VOMS::Lite::VERSION\n/;
@@ -37,6 +39,6 @@ while (<OLD>) {
 }
 close OLD;
 close NEW;
-rename "$dir/example/perl-VOMS-Lite.spec.new", "$dir/example/perl-VOMS-Lite.spec";
+rename "$dir/misc/perl-VOMS-Lite.spec.new", "$dir/misc/perl-VOMS-Lite.spec";
 
 

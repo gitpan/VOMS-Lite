@@ -12,8 +12,9 @@ my $usage = "Usage: $name [ -cert /path/to/cert.pem ]\n".
 " " x ($lname+6). "[ -out /path/to/save/req ]\n".
 " " x ($lname+6). "[ -keyout /path/to/save/key ]\n".
 " " x ($lname+6). "[ -passout password-to-encrypt-output-key ]\n".
-" " x ($lname+6). "[ -capass password-to-decrypt-cert-key ]\n".
+" " x ($lname+6). "[ -pass password-to-decrypt-cert-key ]\n".
 " " x ($lname+6). "[ -bits N (any of {512|1024|2048|4096} default 1024) ]\n".
+" " x ($lname+8). "[ -host dns.of.host.for.alt.name ]\n".
 " " x ($lname). "The following will be processsed in the order they are encountered\n".
 " " x ($lname+6). "[ -C countryName ]\n".
 " " x ($lname+6). "[ -O Organisation ]\n".
@@ -44,7 +45,7 @@ while ($_=shift @ARGV) {
   elsif ( /^--?key$/ ) {
     $Key=shift @ARGV;
     die "$_ requires an argument\n$usage" if ( ! defined $Key );
-    die "cannot open CA key file $Key\n$usage" if ( ! -r $Key );
+    die "cannot open key file $Key\n$usage" if ( ! -r $Key );
   }
   elsif ( /^--?out$/ ) {
     $outfile=shift @ARGV;
@@ -60,11 +61,15 @@ while ($_=shift @ARGV) {
     die "$_ requires a valus of 512, 1024, 2048 or 4096.\n$usage" if ( $bits !~ /^(512|1024|2048|4096)$/ );
     $Input{'Bits'}=$bits;
   }
+  elsif ( /^--?host$/ ) {
+    $host=shift @ARGV;
+    die "$_ requires an argument" if ( ! defined $host );
+  }
   elsif ( /^--?passout$/ ) {
     $passout=shift @ARGV;
     die "$_ requires an argument\n$usage" if ( ! defined $passout );
   }
-  elsif ( /^--?capass$/ ) {
+  elsif ( /^--?pass$/ ) {
     $pass=shift @ARGV;
     die "$_ requires an argument\n$usage" if ( ! defined $pass );
   }
@@ -79,13 +84,16 @@ while ($_=shift @ARGV) {
 
 $lifetime *= 3600 * 24 * 356; # 1 year
 if ( ! defined $outfile ) { die "Certificate output file not specified.\n$usage"; } 
-if ( ! defined $outkeyfile ) { die "Key output file not specified.\n$usage"; } 
+if ( ! defined $outkeyfile && ! defined $Key) { die "Key output file not specified.\n$usage"; } 
 
 if ( @DN == 0 && ! defined $Input{'Cert'} ) { die "No DN attributes specified.\n$usage"; } 
 if ( @DN != 0 ) { $Input{'DN'}=\@DN; }
 
 if ( defined $Key ) { $Input{'Key'}=readPrivateKey($Key,$capass); }
 if ( defined $host ) { $Input{'subjectAltName'}=["dNSName=$host"]; }
+elsif ( defined $email ) { $Input{'subjectAltName'}=["rfc822Name=$email"]; }
+
+
 
 my %Output = %{ VOMS::Lite::REQ::Create(\%Input) };
 
@@ -97,7 +105,9 @@ if ( ! defined $Output{Req} || ! defined $Output{Key} ) {
 foreach ( @{ $Output{Warnings} } ) { print "Warning: $_\n"; }
 
 writeCert($outfile, $Output{'Req'}, "CERTIFICATE REQUEST"); ### Needs it's type changing
-writeKey($outkeyfile, $Output{'Key'}, $passout);
+if ( ! defined $Key) {
+  writeKey($outkeyfile, $Output{'Key'}, $passout);
+}
 
 __END__
 

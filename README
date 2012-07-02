@@ -4,7 +4,7 @@ VOMS-Lite version 0.01
 This library contains code to produce VOMS Attribute Certificates and GSI Proxy certificates.
 The Code for producing and parsing GSI and X509 certificates, and ASN1 is purely perl and independent of 
 any OpenSSL Libraries etc.  Some of the utility scripts, however, use SSL Sockets setup via HTTPS::Daemon::SSL 
-and it's friends.
+and its friends.
 
 INSTALLATION
 
@@ -52,7 +52,7 @@ Mike Jones <mike.jones@manchester.ac.uk>
 
 COPYRIGHT AND LICENCE
 
-Copyright (C) 2006-2011 by Mike Jones
+Copyright (C) 2006-2012 by Mike Jones
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.3 or,

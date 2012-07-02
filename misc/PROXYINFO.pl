@@ -5,12 +5,13 @@ use MIME::Base64;
 my $myCert="/tmp/x509up_u$<";
 my $myCertData="";
 my $read=0;
+my $type="";
 
 open(CERT,"<$myCert");
 while (<CERT>) {
   my $line=$_;
-  if ( $line =~ /^-----BEGIN CERTIFICATE-----$/ ) {$read=1;}
-  if ( $line =~ /^-----END CERTIFICATE-----$/ ) {last;}
+  if ( $line =~ /^-----BEGIN ([A-Z0-9 ]*)-----$/ ) {$read=1; $type=$1;}
+  if ( $line =~ /^-----END $type-----$/ ) {last;}
   if ( $read==1 && $line =~ /^([A-Za-z0-9+\/=]*)$/ ) {$myCertData.=$1;}
 }
 close(CERT);

@@ -3,7 +3,7 @@ package VOMS::Lite::Base64;
 require Exporter;
 use vars qw($VERSION $DEBUG @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 @ISA = qw(Exporter);
-$VERSION = '0.17';
+$VERSION = '';
 
 my %Alphabets = ( VOMS => "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789[]",
                   RFC3548 => "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",

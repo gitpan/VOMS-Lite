@@ -14,7 +14,7 @@ require Exporter;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 @ISA = qw(Exporter);
 
-$VERSION = '0.17';
+$VERSION = '';
 
 sub Examine {
   my ($decoded,$dataref)=@_;
@@ -147,11 +147,11 @@ sub Create {
   my %CI;
   my %KI;
   if ( defined $context{'Cert'} ) {
-    $CertInfoRef = (($context{'Cert'} =~ /^(\060.+)$/s) ? VOMS::Lite::X509::Examine($&, {X509subject=>""}) : undef);
+    $CertInfoRef = (($context{'Cert'} =~ /^(\060.+)$/s) ? VOMS::Lite::X509::Examine($&, {X509subject=>"", SubjectDN=>""}) : undef);
     if ( defined $CertInfoRef )  { %CI=%$CertInfoRef; } else { push @Errors, "REQ: Unable to parse CA certificate."; }
   }
   if ( defined $context{'Key'} ) {
-    $KeyInfoRef  = (($context{'Key'}  =~ /^(\060.+)$/s) ?  VOMS::Lite::KEY::Examine($&, {Keymodulus=>"", KeyprivateExponent=>""}) : undef);
+    $KeyInfoRef  = (($context{'Key'}  =~ /^(\060.+)$/s) ?  VOMS::Lite::KEY::Examine($&, {Keymodulus=>"", KeyprivateExponent=>"", KeypublicExponent=>""}) : undef);
     if ( defined $KeyInfoRef )   { %KI=%$KeyInfoRef;  } else { push @Errors, "REQ: Unable to parse CA key."; }    
   }
 
@@ -168,6 +168,8 @@ sub Create {
 # Do not edit below these lines (unless there's a bug of course!) #
 ###################################################################
 
+  my $host=0;
+
 # Check and parse the DN array referenced
   if ( defined $context{'DN'} ) {
     $CI{'X509subject'}="";
@@ -180,6 +182,7 @@ sub Create {
         elsif ( $value =~ /^[\x00\x07-\x0f\x11-\x14\x18-\x1b\x20-\x23\x25-\x7d\x7f]*$/ ) { $STRtype="16"; } #IA5 String
         else { push @Errors, "REQ: Can't find an apropriate encoding for $attrib+$value."; }
         if ( defined $STRtype ) { $CI{'X509subject'} .= ASN1Wrap("31",ASN1Wrap("30",ASN1Wrap("06",Hex(OIDtoASN1OID($OID))).ASN1Wrap($STRtype,Hex($value)))) }; 
+        if ( $OID eq '2.5.4.3' && $value =~ /^[a-zA-Z0-9]+\.[a-zA-Z0-9]+$/ ) { $host = 1;} # detect that this is a host name for later use
       }
       else { push @Errors, "REQ: unknown Attribute: $attrib"; }
     }
@@ -188,6 +191,7 @@ sub Create {
     $CI{'X509subject'}=~ s/(..)/pack('C',hex($&))/ge;
   }
   elsif ( ! defined $CI{'X509subject'} ) { push @Errors, "REQ: Unable to obtain Subject of certificate supplied"; }
+  else { if ( $CI{'SubjectDN'} =~ /\/CN=[a-zA-Z0-9]+\.[a-zA-Z0-9]+/ ) {$host = 1;} } # detect that this is a host name for later use
 
 # Bail if DN is bad
   if ( @Errors > 0 ) { return { Errors => \@Errors} ; }
@@ -204,7 +208,7 @@ sub Create {
 
 # Generate Key Pair
 #    my $keyref = VOMS::Lite::Key::GenRSAKey( { Bits => 512, Verbose => (defined $context{'Quiet'})?undef:"y" } );
-    my $keyref = VOMS::Lite::RSAKey::Create( { Bits => 512, Verbose => (defined $context{'Quiet'})?undef:"y" } );
+    my $keyref = VOMS::Lite::RSAKey::Create( { Bits => $context{'Bits'}, Verbose => (defined $context{'Quiet'})?undef:"y" } );
     if ( ! defined $keyref ) { return { Errors => [ "REQ: Key Generation Failure" ] } ; }
     my %key = %{ $keyref }; 
     if ( defined $key{'Error'} ) { return { Errors => [ "REQ: Error in Key Generation ".$key{'Error'} ] } ; }
@@ -233,10 +237,14 @@ sub Create {
     $KI{KeyprivateExponent} =~ s/(..)/pack("C",hex($&))/ge;
   }
   else {
-    $Keymodulus = ASN1Wrap("02",ASN1Unwrap($KI{Keymodulus}));
-    $KeypublicExponent = ASN1Wrap("02",ASN1Unwrap($KI{KeypublicExponent}));
-    $KeyprivateExponent = ASN1Wrap("02",ASN1Unwrap($KI{KeyprivateExponent}));
-    $Privatekey = $context{'Key'};
+#foreach (keys %KI) { print "$_ -> ".Hex($KI{$_})."\n"; }
+#    $Keymodulus         = ASN1Wrap("02",ASN1Unwrap($KI{Keymodulus}));
+#    $KeypublicExponent  = ASN1Wrap("02",ASN1Unwrap($KI{KeypublicExponent}));
+#    $KeyprivateExponent = ASN1Wrap("02",ASN1Unwrap($KI{KeyprivateExponent}));
+    $Keymodulus         = ASN1Wrap("02",Hex($KI{Keymodulus}));
+    $KeypublicExponent  = ASN1Wrap("02",Hex($KI{KeypublicExponent}));
+    $KeyprivateExponent = ASN1Wrap("02",Hex($KI{KeyprivateExponent}));
+    $Privatekey         = $context{'Key'};
   }
 
 ###Request Bits######################################################
@@ -259,14 +267,17 @@ sub Create {
 #  1.2.840.113549.1.9.14 Request extension
 # a0 [ SEQ [ OID [ 1.2.840.113549.1.9.14 ] SET [ SEQ [ SEQ [ OID [ 2.5.29.17 ] $SubjectAltName ] ] ] ] ]
 # Check and parse the SubjectAltName array referenced
-  my $SubjectAltName="";
+  my $SubjectAltNameExt="";
   if ( defined $context{'subjectAltName'} ) {
+    my $SubjectAltName="";
     foreach (@{ $context{'subjectAltName'} }) {
       if    ( /^otherName=/ )                   { push @Errors, "X509: otherName not supported"; }
       elsif ( /^rfc822Name=([\x00\x07-\x0f\x11-\x14\x18-\x1b\x20-\x23\x25-\x7d\x7f]*)$/ )
                                                 { $SubjectAltName.=ASN1Wrap("81",Hex($1)); }
       elsif ( /^dNSName=([\x00\x07-\x0f\x11-\x14\x18-\x1b\x20-\x23\x25-\x7d\x7f]*)$/ )
-                                                { $SubjectAltName.=ASN1Wrap("82",Hex($1)); }
+                                                { $SubjectAltName.=ASN1Wrap("82",Hex($1)); 
+                                                  $host=1;
+                                                }
       elsif ( /^x400Address=/ )                 { push @Errors, "X509: x400Address not supported"; }
       elsif ( /^directoryName=(30[0-9a-f]*)$/ ) { $SubjectAltName.=ASN1Wrap("84",$1); }
       elsif ( /^directoryName=(\060.*)$/ )      { $SubjectAltName.=ASN1Wrap("84",Hex($1)); }
@@ -290,9 +301,16 @@ sub Create {
       else                                      { push @Errors, "X509: malformed SubjectAltName entry"; }
     }
     $SubjectAltName=ASN1Wrap("04",ASN1Wrap("30",$SubjectAltName));
-    my $SubjectAltNameExt=ASN1Wrap("30","0603551d11".$SubjectAltName);
-    $REQExt=ASN1Wrap("a0", ASN1Wrap("30", "06092a864886f70d01090e".ASN1Wrap("31", ASN1Wrap("30", $SubjectAltNameExt ))));  
+    $SubjectAltNameExt=ASN1Wrap("30","0603551d11".$SubjectAltName);
   }
+
+  my $BasicConstraints='30090603551d1304023000';  #CA False
+  my $KU='300b0603551d0f0404030204b0'; #Digital Siganture, Key Encypherment, Digital Encryption
+  my $EKU;
+  if ( $host ) { $EKU='301d0603551d250416301406082b0601050507030106082b06010505070302';}
+  else { $EKU='30130603551d25040c300a06082b06010505070302'; }
+
+  $REQExt=ASN1Wrap("a0", ASN1Wrap("30", "06092a864886f70d01090e".ASN1Wrap("31", ASN1Wrap("30",$BasicConstraints.$KU.$EKU.$SubjectAltNameExt ))));  
 
 #### The whole chunck of certificate to be signed ####
   my $TBSRequest=ASN1Wrap("30",$REQversion.$REQsubject.$REQsubjectPublicKeyInfo.$REQExt);

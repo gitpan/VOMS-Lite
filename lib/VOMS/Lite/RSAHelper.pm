@@ -10,7 +10,7 @@ use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 %EXPORT_TAGS = ( );
 @EXPORT_OK = qw( rsasign rsaencrypt rsaverify rsadecrypt );
 @EXPORT = ( );
-$VERSION = '0.17';
+$VERSION = '';
 
 ###############################################
 

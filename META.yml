@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               VOMS-Lite
-version:            0.17
+version:            0.18
 abstract:           Perl extension for VOMS Attribute certificate creation
 author:
     - Mike Jones <mike.jones@manchester.ac.uk>

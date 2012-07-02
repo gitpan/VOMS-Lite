@@ -1,5 +1,5 @@
 Name:           perl-VOMS-Lite
-Version:        0.17
+Version:        0.18
 Release:        1%{?dist}
 Summary:        Perl extension for VOMS Attribute certificate creation
 License:        GPL+ or Artistic
@@ -67,7 +67,7 @@ of a VOMS server.
 
 %setup -q -n VOMS-Lite-%{version}
 %patch0 -p1
-chmod 644 example/PROXYINFO.pl
+chmod 644 misc/PROXYINFO.pl
 cp -p %{SOURCE1} .
 
 %build
@@ -100,14 +100,14 @@ make test
 # to lose the Win32 API requirement.  We patched references to Win32 out in %prep
 # now we patch them back.
 cd %{perl_vendorlib}/VOMS/Lite
-patch -R < %{_docdir}/%{name}-%{version}/example/unwin32.patch
+patch -s -R < %{_docdir}/%{name}-%{version}/misc/unwin32.patch
 
 %clean
 rm -rf %{buildroot}
 
 %files
 %defattr(-,root,root,-)
-%doc Changes README TODO example
+%doc Changes README TODO misc
 %{perl_vendorlib}/*
 %{_mandir}/man3/*
 %{_bindir}/cert-init.pl

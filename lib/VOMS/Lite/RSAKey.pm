@@ -9,7 +9,7 @@ require Exporter;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 @ISA = qw(Exporter);
 
-$VERSION = '0.17';
+$VERSION = '';
 
 my $DefaultRandom=undef;
 my ($CryptCtx,$Generator);

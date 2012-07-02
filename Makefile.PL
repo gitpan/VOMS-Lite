@@ -2,7 +2,20 @@ use 5.004;
 use ExtUtils::MakeMaker;
 # See lib/ExtUtils/MakeMaker.pm for details of how to influence
 # the contents of the Makefile that is written.
- 
+
+sub MY::postamble {
+  return <<EOT;
+.PHONY: version rpm
+
+version:
+	perl updateversion.pl
+
+rpm: dist version
+	sh buildRPM.sh
+
+EOT
+}
+
 # Are we using CPAN?
 my $UsingCPAN=$INC{"CPAN.pm"};
 

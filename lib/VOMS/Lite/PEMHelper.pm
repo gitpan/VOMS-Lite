@@ -11,7 +11,7 @@ use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 %EXPORT_TAGS = ( );
 @EXPORT_OK = qw( encodeCert writeAC encodeAC readAC readCert decodeCert writeKey writeCert writeCertKey readPrivateKey );
 @EXPORT = ( );
-$VERSION = '0.17';
+$VERSION = '';
 
 ################################################################
 
@@ -200,8 +200,7 @@ sub writeKey {
 
   open(KEY,">$file") || die "Can't create file to save cert and key to.";
   my $OpenSSLCompat=encode_base64($pri,'');
-  $OpenSSLCompat=~s/(.{64})/$&\n/g;
-  $OpenSSLCompat=~s/([^\x0a])$/$&\n/s;
+  $OpenSSLCompat=~s/(.{1,64})/$&\n/g;
   print KEY "-----BEGIN RSA PRIVATE KEY-----\n$ENCRYPTION".$OpenSSLCompat."-----END RSA PRIVATE KEY-----\n";
   close(KEY);
   umask($umasksave);
@@ -223,8 +222,7 @@ sub writeCert {
   if ( -e $file ) { move($file,"$file.old"); } #move old file away
   open(CERT,">$file") || die "Can't create file to save cert and key to.";
   my $OpenSSLCompat=encode_base64($pub,'');
-  $OpenSSLCompat=~s/(.{64})/$&\n/g; 
-  $OpenSSLCompat=~s/([^\x0a])$/$&\n/s;
+  $OpenSSLCompat=~s/(.{1,64})/$&\n/g;
   print CERT "-----BEGIN $type-----\n".$OpenSSLCompat."-----END $type-----\n";
   close(CERT);
   return;

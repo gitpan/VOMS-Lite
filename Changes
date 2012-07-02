@@ -200,4 +200,20 @@ Revision history for Perl extension VOMS::Lite.
           - Added unwin32.patch to aid automatic perl library exclusions in rpm
           - Added voms.config sample as required by spec file
         - Updated the updateversion.pl script to update version in RPM spec file
-
+0.18 Mon Jul 02 12:05:00 2012
+        - VOMS::Lite::REQ::Create
+          - Checks input to identify whether request is for a host or not
+          - Fixed SubjectAltName Extension request
+          - Fixed Key used to sign request if pre-generated
+          - Added Basic Constraints, Key usage and Extended Key Usage Extensions.
+        - VOMS::Lite::PEMHelper: fixed a number of formatting issues in PEM encoding.
+        - cert-req.pl
+          - added -host option to force subjectAltName dnsName:...
+          - add value in -email to any subjectAltName extension (if not a host cert)
+        - Moved example directory to misc directory
+        - Added buildRPM.sh to build rpms
+        - Created 'rpm' and 'version' targets in MakeMaker generated Makefile
+          - version runs updateversion.pl
+          - rpm runs buildRPM.sh (creates rpms in rpm directory) 
+            and depends on 'dist' and 'verstion'
+        - voms-proxy-init.pl handles no Attribute Certificate scenario more gracefully.

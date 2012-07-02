@@ -1,10 +1,10 @@
 Changes
-example/DoIt.pl
-example/PROXYINFO.pl
-example/ProxyChain.pl
-example/perl-VOMS-Lite.spec
-example/unwin32.patch
-example/voms.config
+misc/DoIt.pl
+misc/PROXYINFO.pl
+misc/ProxyChain.pl
+misc/perl-VOMS-Lite.spec
+misc/unwin32.patch
+misc/voms.config
 bin/cert-init.pl
 bin/cert-req.pl
 bin/examineAC.pl
@@ -42,4 +42,5 @@ sbin/voms-server.pl
 sbin/vomsserver.pl
 TODO
 updateversion.pl
+buildRPM.sh
 META.yml                                 Module meta-data (added by MakeMaker)

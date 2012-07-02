@@ -159,8 +159,11 @@ foreach my $URI (@URI) {
 
 print "Creating Proxy\n";
 
-my @ACDER=decodeCert($AC,"ATTRIBUTE CERTIFICATE");
-$Input{'AC'}=join('',@ACDER);
+if ( $AC ) {
+  my @ACDER=decodeCert($AC,"ATTRIBUTE CERTIFICATE");
+  $Input{'AC'}=join('',@ACDER);
+}
+else { print "Warning: No attribute certificates were obtained or generated\n"; }
 
 my %Output = %{ VOMS::Lite::PROXY::Create(\%Input) };
 if ( ! defined $Output{ProxyCert} || ! defined $Output{ProxyKey} ) {
