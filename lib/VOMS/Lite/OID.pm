@@ -1,5 +1,11 @@
 package VOMS::Lite::OID;
 
+require Exporter;
+use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
+@ISA = qw(Exporter);
+
+$VERSION = '0.19';
+
 sub OIDS {
   my $OID=shift;
   my @OID=split /\./,$OID;

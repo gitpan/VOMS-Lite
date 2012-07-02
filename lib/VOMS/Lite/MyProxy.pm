@@ -9,7 +9,7 @@ require Exporter;
 use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 @ISA = qw(Exporter);
 
-$VERSION = '';
+$VERSION = '0.19';
 
 END{
   if ( -e "/tmp/mpcertfile.$<.$$" ) { unlink("/tmp/mpcertfile.$<.$$") };

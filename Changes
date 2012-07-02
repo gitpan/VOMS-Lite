@@ -217,3 +217,5 @@ Revision history for Perl extension VOMS::Lite.
           - rpm runs buildRPM.sh (creates rpms in rpm directory) 
             and depends on 'dist' and 'verstion'
         - voms-proxy-init.pl handles no Attribute Certificate scenario more gracefully.
+0.19 Mon Jul 02 12:50:00 2012
+        - Fixed bug in updateversion.pl

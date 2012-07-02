@@ -17,7 +17,7 @@ use Crypt::CBC;
 require Exporter;
 use vars qw($VERSION $DEBUG @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 @ISA = qw(Exporter);
-$VERSION = '';
+$VERSION = '0.19';
 
 BEGIN {
   $DEBUG='no';

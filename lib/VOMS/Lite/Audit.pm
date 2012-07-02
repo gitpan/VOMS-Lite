@@ -5,6 +5,12 @@ use strict;
 
 use VOMS::Lite::ASN1Helper qw(Hex ASN1Index ASN1Unwrap ASN1Wrap);
 
+require Exporter;
+use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
+@ISA = qw(Exporter);
+
+$VERSION = '0.19';
+
 sub Create {
   my ($location,$critical) = @_;
 # SEQ{OID{1.3.6.1.4.1.18141.3.100.5.1 }.[CRITICAL].OS{URL}} # NB Critical is not generally used
@@ -50,7 +56,7 @@ VOMS::Lite::Audit - Perl extension for the creation of and parsing of DER encode
 
   NB this is an experimental extension:
   There are known encoding issues that will change as the Auditing Service is developed.
-  When this happens this modeul will need updating to match.
+  When this happens this module will need updating to match.
 
 =head1 DESCRIPTION
 
