@@ -89,7 +89,7 @@ if ( ! defined $outkeyfile && ! defined $Key) { die "Key output file not specifi
 if ( @DN == 0 && ! defined $Input{'Cert'} ) { die "No DN attributes specified.\n$usage"; } 
 if ( @DN != 0 ) { $Input{'DN'}=\@DN; }
 
-if ( defined $Key ) { $Input{'Key'}=readPrivateKey($Key,$capass); }
+if ( defined $Key ) { $Input{'Key'}=readPrivateKey($Key,$pass); }
 if ( defined $host ) { $Input{'subjectAltName'}=["dNSName=$host"]; }
 elsif ( defined $email ) { $Input{'subjectAltName'}=["rfc822Name=$email"]; }
 

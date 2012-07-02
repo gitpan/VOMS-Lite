@@ -14,7 +14,7 @@ use vars qw($VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS);
 %EXPORT_TAGS = ( );
 @EXPORT_OK = qw(buildchain digestSign OIDtoDNattrib DNattribToOID);
 @EXPORT = ( );
-$VERSION = '0.19';
+$VERSION = '0.20';
 ##################################################
 
 # Define some common OIDs used in Distunguished names NB we're using UID and Email not UserID and emailAddress

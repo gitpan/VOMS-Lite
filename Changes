@@ -219,3 +219,5 @@ Revision history for Perl extension VOMS::Lite.
         - voms-proxy-init.pl handles no Attribute Certificate scenario more gracefully.
 0.19 Mon Jul 02 12:50:00 2012
         - Fixed bug in updateversion.pl
+0.20 Mon Jul 02 13:25:00 2012
+        - cert-req.pl -pass option fixed

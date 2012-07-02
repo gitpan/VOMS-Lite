@@ -1,5 +1,5 @@
 Name:           perl-VOMS-Lite
-Version:        0.19
+Version:        0.20
 Release:        1%{?dist}
 Summary:        Perl extension for VOMS Attribute certificate creation
 License:        GPL+ or Artistic
